@@ -34,6 +34,18 @@ const RegisterPage = () => {
             return;
         }
 
+        if(formData.password.length < 8){
+            setError('Password must be at least 8 characters long.');
+            return;
+        }
+
+        const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+        if(!passRegex.test(formData.password)){
+            setError('Password must contain: \n• minimum of 1 uppercase letter \n• minimum of 1 lowercase letter \n• minimum of 1 number \n• minimum of 1 special character');
+            return;
+        }
+
         setLoading(true);
 
 
@@ -190,7 +202,8 @@ const styles = {
         padding: '0.75rem',
         borderRadius: '4px',
         marginBottom: '1rem',
-        border: '1px solid #f5c6cb'
+        border: '1px solid #f5c6cb',
+        whiteSpace: 'pre-line'
     },
 
     linkText: {
