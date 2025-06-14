@@ -3,6 +3,16 @@ import {
   Box, Button, Typography, TextField, Paper, List, ListItem, ListItemButton, ListItemText, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 
+// TO DO //
+/*
+For the table, add pagination, sorting by date, and ability to edit participation status inline.
+Ability to soft-delete entries
+
+*/
+
+
+
+
 const HistoryPage = () => {
   const [search, setSearch] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
