@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
+import './App.css'
 
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
