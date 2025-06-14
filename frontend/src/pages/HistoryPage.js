@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Box, Typography, TextField, Paper, List, ListItem, ListItemText, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+  Box, Button, Typography, TextField, Paper, List, ListItem, ListItemButton, ListItemText, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 
 const HistoryPage = () => {
@@ -10,123 +10,137 @@ const HistoryPage = () => {
 
   // Hardcoded volunteer list
   const volunteerList = [
+    'Jordan Smith',
+    'Ava Chen',
+    'Liam Patel',
+    'Maria Gonzalez'
+  ];
+
+  const allHistory = [
     {
-      name: 'Jordan Smith',
-      email: 'jordan@example.com',
-      history: [
-        { event: 'Food Drive', date: '2024-10-15', hours: 5, performance: 'Excellent' },
-        { event: 'Park Cleanup', date: '2024-11-03', hours: 3, performance: 'Good' }
-      ]
+      volunteer: 'Jordan Smith',
+      eventName: 'Community Cleanup',
+      description: 'Neighborhood-wide trash pickup and recycling event.',
+      location: 'Maple Street Park',
+      requiredSkills: 'Teamwork, Physical Stamina',
+      urgency: 'High',
+      date: '2025-06-15',
+      participationStatus: 'Attended'
     },
     {
-      name: 'Ava Chen',
-      email: 'ava.chen@example.com',
-      history: [
-        { event: 'Toy Drive', date: '2024-12-01', hours: 4, performance: 'Excellent' },
-        { event: 'Blood Drive', date: '2025-01-10', hours: 2, performance: 'Satisfactory' }
-      ]
+      volunteer: 'Ava Chen',
+      eventName: 'Food Drive',
+      description: 'Sorting and distributing food items for families in need.',
+      location: 'Central Food Bank',
+      requiredSkills: 'Organization, Communication',
+      urgency: 'Medium',
+      date: '2025-05-30',
+      participationStatus: 'No-show'
     },
     {
-      name: 'Liam Patel',
-      email: 'liam.patel@example.com',
-      history: []
+      volunteer: 'Jordan Smith',
+      eventName: 'Animal Shelter Support',
+      description: 'Help clean cages and walk dogs at the local shelter.',
+      location: 'Greenwood Shelter',
+      requiredSkills: 'Empathy, Animal Care',
+      urgency: 'Low',
+      date: '2025-05-10',
+      participationStatus: 'Attended'
     }
   ];
 
-  const filteredVolunteers = volunteerList.filter(vol =>
-    vol.name.toLowerCase().includes(search.toLowerCase())
+  const filteredVolunteers = volunteerList.filter(name =>
+    name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSelectVolunteer = (vol) => {
-    setSelectedVolunteer(vol);
-    setSearch(vol.name);
-  };
+  const filteredHistory = selectedVolunteer
+    ? allHistory.filter(entry => entry.volunteer === selectedVolunteer)
+    : allHistory;
+
 
   return (
-    <Box
-      sx={{
-        maxWidth: 600,
-        mx: 'auto',
-        mt: 4,
-        p: 3,
-        border: '1px solid #ccc',
-        borderRadius: 2,
-        boxShadow: 3,
-        backgroundColor: '#fafafa'
-      }}
-    >
+  <Box sx={{ p: 3 }}>
       <Typography variant="h5" gutterBottom>
-        Volunteer History
+        Volunteer Participation History
       </Typography>
 
-      <TextField
-        label="Search Volunteer"
-        fullWidth
-        value={search}
-        onChange={(e) => {
-            setSearch(e.target.value);
-            setSelectedVolunteer(null);
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 100)} // Delay to allow click
-        sx={{ mb: 2 }}
-        />
-
-      {!selectedVolunteer && focused && (
-        <Paper sx={{ maxHeight: 200, overflowY: 'auto', mb: 2 }}>
-          <List dense>
-            {filteredVolunteers.length > 0 ? (
-              filteredVolunteers.map((vol, index) => (
-                <React.Fragment key={index}>
-                  <ListItem button onClick={() => handleSelectVolunteer(vol)}>
-                    <ListItemText primary={vol.name} secondary={vol.email} />
-                  </ListItem>
-                  <Divider />
-                </React.Fragment>
-              ))
-            ) : (
-              <ListItem>
-                <ListItemText primary="No matches found" />
-              </ListItem>
-            )}
-          </List>
-        </Paper>
-      )}
-
-      {selectedVolunteer && (
-        <>
-          <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
-            History for {selectedVolunteer.name} ({selectedVolunteer.email})
-          </Typography>
-
-          {selectedVolunteer.history.length === 0 ? (
-            <Typography>No participation records found.</Typography>
-          ) : (
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Event</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell align="right">Hours</TableCell>
-                    <TableCell>Performance</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {selectedVolunteer.history.map((record, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{record.event}</TableCell>
-                      <TableCell>{record.date}</TableCell>
-                      <TableCell align="right">{record.hours}</TableCell>
-                      <TableCell>{record.performance}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+      <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'start' }}>
+        <Box sx={{ width: 300 }}>
+          <TextField
+            label="Search Volunteer"
+            fullWidth
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setSelectedVolunteer(null);
+            }}
+          />
+          {!selectedVolunteer && search && (
+            <List dense sx={{ border: '1px solid #ccc', maxHeight: 200, overflowY: 'auto' }}>
+              {filteredVolunteers.map((name, index) => (
+                <ListItem key={index} disablePadding>
+                  <ListItemButton onClick={() => {
+                    setSelectedVolunteer(name);
+                    setSearch(name);
+                  }}>
+                    {name}
+                  </ListItemButton>
+                </ListItem>
+              ))}
+              {filteredVolunteers.length === 0 && (
+                <ListItem>
+                  <Typography variant="body2" sx={{ p: 1 }}>No matches found</Typography>
+                </ListItem>
+              )}
+            </List>
           )}
-        </>
-      )}
+        </Box>
+
+        {selectedVolunteer && (
+          <Button
+            onClick={() => {
+              setSelectedVolunteer(null);
+              setSearch('');
+            }}
+            variant="outlined"
+            color="secondary"
+            sx={{ height: '40px' }}
+          >
+            Clear Filter
+          </Button>
+        )}
+      </Box>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
+            <TableRow>
+              <TableCell>Volunteer</TableCell>
+              <TableCell>Event Name</TableCell>
+              <TableCell>Description</TableCell>
+              <TableCell>Location</TableCell>
+              <TableCell>Required Skills</TableCell>
+              <TableCell>Urgency</TableCell>
+              <TableCell>Event Date</TableCell>
+              <TableCell>Participation Status</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredHistory.map((event, index) => (
+              <TableRow key={index}>
+                <TableCell>{event.volunteer}</TableCell>
+                <TableCell>{event.eventName}</TableCell>
+                <TableCell>{event.description}</TableCell>
+                <TableCell>{event.location}</TableCell>
+                <TableCell>{event.requiredSkills}</TableCell>
+                <TableCell>{event.urgency}</TableCell>
+                <TableCell>{event.date}</TableCell>
+                <TableCell>{event.participationStatus}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };
