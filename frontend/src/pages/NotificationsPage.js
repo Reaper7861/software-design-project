@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText, Divider, Grid,  Dialog, DialogTitle, DialogContent, DialogActions, } from '@mui/material';
 
+
+// TO DO //
+/* 
+filter messages by receieved and sent
+ability to soft-delete messages
+ability to reply to messages 
+notifications should be received as Assignments, Updates, or Reminders
+
+
+*/ 
+
+
 const NotificationSystem = () => {
 
 //handles the subject+message content
