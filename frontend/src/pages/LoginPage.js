@@ -1,17 +1,20 @@
 import React, {useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+// Form with email and password validation
 const LoginPage = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
 
+    // Error message
     const [error, setError] = useState('');
+    // Loading state
     const [loading, setLoading] = useState(false);
-    
     const navigate = useNavigate();
 
+    // Update fields on input change
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -19,22 +22,23 @@ const LoginPage = () => {
         });
     };
 
+    // Form submission with basic validation
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-
+        // Basic validations - fields are required
         if(!formData.email || !formData.password){
             setError('Please fill in all fields');
             setLoading(false);
             return;
         }
 
-
         try{
             console.log('Login attempt:', formData);
 
+            // Simulation of login right now (placeholder)
             setTimeout(() => {
                 navigate('/profile');
                 setLoading(false);
@@ -51,9 +55,11 @@ const LoginPage = () => {
             <div style={styles.card}>
                 <h2 style={styles.title}>Login</h2>
 
+                {/* Error message */}
                 {error && <div style={styles.error}>{error}</div>}
 
                 <form onSubmit={handleSubmit}>
+                    {/* Email input field */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Email</label>
                         <input
@@ -67,6 +73,7 @@ const LoginPage = () => {
                             />
                         </div>
 
+                        {/* Password input field */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Password</label>
                             <input 
@@ -80,6 +87,7 @@ const LoginPage = () => {
                             />
                         </div>
 
+                        {/* Submit button with loading state */}
                         <button
                             type="submit"
                             style={loading ? {...styles.button, ...styles.buttonDisabled} : styles.button}
@@ -89,6 +97,7 @@ const LoginPage = () => {
                         </button>
                 </form>
 
+                {/* Link to registration page (if not registered) */}
                 <p style={styles.linkText}>
                     Don&#39;t have an account? <Link to="/register" style={styles.link}>Register Here</Link>
                 </p>
@@ -97,8 +106,10 @@ const LoginPage = () => {
     );
 };
 
+// Custom styles for form appearance
 const styles = {
 
+    // Style for login form card
     container: {
         display: 'flex',
         justifyContent: 'center',
@@ -107,6 +118,7 @@ const styles = {
         padding: '20px'
     },
 
+    // Login form card appearance
     card: {
         backgroundColor: 'white',
         padding: '2rem',
@@ -116,16 +128,19 @@ const styles = {
         maxWidth: '400px'
     },
 
+    // Page title styling
     title: {
         textAlign: 'center',
         marginBottom: '1.5rem',
         color: '#2c3e50'
     },
 
+    // Spacing between form groups
     formGroup: {
         marginBottom: '1rem'
     },
 
+    // Form label styling
     label: {
         display: 'block',
         marginBottom: '0.5rem',
@@ -133,6 +148,7 @@ const styles = {
         color: '#555'
     },
 
+    // Input field styling
     input: {
         width: '100%',
         padding: '0.75rem',
@@ -142,6 +158,7 @@ const styles = {
         boxSizing: 'border-box'
     },
 
+    // Button styling
     button: {
         width: '100%',
         backgroundColor: '#3498db',
@@ -154,11 +171,13 @@ const styles = {
         marginTop: '1rem'
     },
 
+    // Disabled button appearance
     buttonDisabled: {
         backgroundColor: '#bdc3c7',
         cursor: 'not-allowed'
     },
 
+    // Error message styling
     error: {
         backgroundColor: '#fee',
         color: '#c0392b',
@@ -168,11 +187,13 @@ const styles = {
         border: '1px solid #f5c6cb'
     },
 
+    // Appearance of register link
     linkText: {
         textAlign: 'center',
         marginTop: '1rem'
     },
 
+    // Styling for register link
     link: {
         color: '#3498db',
         textDecoration: 'none'
