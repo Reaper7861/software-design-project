@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+// Registration form with email, password, and confirm pasword confirmation
 const RegisterPage = () => {
+    // Form state -> email, password, confirmPassword
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         confirmPassword: '',
     });
 
+    // Error message
     const [error, setError] = useState('');
+    // Loading state
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // Update fields on input change
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -19,28 +24,33 @@ const RegisterPage = () => {
         });
     };
 
+    // Form submission with broad validations
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-
+        // Check is all fields are filled
         if(!formData.email || !formData.password || !formData.confirmPassword){
             setError('Please fill in all fields');
             return;
         }
         
+        // Check if passwords match
         if(formData.password !== formData.confirmPassword){
             setError('Passwords do not match');
             return;
         }
 
+        // Check password has minimum length
         if(formData.password.length < 8){
             setError('Password must be at least 8 characters long.');
             return;
         }
 
+        // Password must consist of uppercase, lowercase, number, and special character
         const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
+        // Check if password contains the following
         if(!passRegex.test(formData.password)){
             setError('Password must contain: \n• minimum of 1 uppercase letter \n• minimum of 1 lowercase letter \n• minimum of 1 number \n• minimum of 1 special character');
             return;
@@ -55,6 +65,7 @@ const RegisterPage = () => {
                 password: formData.password
             });
 
+            // Simulation of registration right now (placeholder)
             setTimeout(() => {
                 navigate('/login', {
                     state: { message: 'Registration successful. Please log in.'}
@@ -73,9 +84,11 @@ const RegisterPage = () => {
             <div style={styles.card}>
                 <h2 style={styles.title}>Create Account</h2>
 
+                {/* Error message */}
                 {error && <div style={styles.error}>{error}</div>}
 
                 <form onSubmit={handleSubmit}>
+                    {/* Email input field */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Email</label>
                         <input 
@@ -89,6 +102,7 @@ const RegisterPage = () => {
                         />
                     </div>
 
+                    {/* Password input field */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Password</label>
                         <input
@@ -102,6 +116,7 @@ const RegisterPage = () => {
                         />
                     </div>
 
+                    {/* Password confirmation input field */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Confirm Password</label>
                         <input
@@ -115,6 +130,7 @@ const RegisterPage = () => {
                         />
                     </div>
 
+                    {/* Submit button with loading state */}
                     <button
                         type="submit"
                         style={loading ? {...styles.button, ...styles.buttonDisabled} : styles.button}
@@ -124,7 +140,7 @@ const RegisterPage = () => {
                     </button>
                 </form>
 
-
+                {/* Link to login page (if already registered) */}
                 <p style={styles.linkText}>
                     Already have an account? <Link to="/login" style={styles.link}>Login Here</Link>
                 </p>
@@ -134,8 +150,10 @@ const RegisterPage = () => {
 };
 
 
+// Custom styles for form appearance
 const styles = {
 
+    // Style for registration form card
     container: {
         display: 'flex',
         justifyContent: 'center',
@@ -144,6 +162,7 @@ const styles = {
         padding: '20px'
     },
     
+    // Registration form card appearance
     card: {
         backgroundColor: 'white',
         padding: '2rem',
@@ -153,16 +172,19 @@ const styles = {
         maxWidth: '400px'
     },
 
+    // Page title styling
     title: {
         textAlign: 'center',
         marginBottom: '1.5rem',
         color: '#2c3e50'
     },
 
+    // Spacing between form groups
     formGroup: {
         marginBottom: '1rem'
     },
 
+    // Form label styling
     label: {
         display: 'block',
         marginBottom: '0.5rem',
@@ -170,6 +192,7 @@ const styles = {
         color: '#555'
     },
 
+    // Input field styling
     input: {
         width: '100%',
         padding: '0.75rem',
@@ -179,6 +202,7 @@ const styles = {
         boxSizing: 'border-box'
     },
 
+    // Button styling
     button: {
         width: '100%',
         backgroundColor: '#27ae60',
@@ -191,11 +215,13 @@ const styles = {
         marginTop: '1rem'
     },
 
+    // Disabled button appearance
     buttonDisabled: {
         backgroundColor: '#bdc3c7',
         cursor: 'not-allowed'
     },
 
+    // Error message styling
     error: {
         backgroundColor: '#fee',
         color: '#c0392b',
@@ -206,11 +232,13 @@ const styles = {
         whiteSpace: 'pre-line'
     },
 
+    // Appearance of register link
     linkText: {
         textAlign: 'center',
         marginTop: '1rem'
     },
 
+    // Styling for register link
     link: {
         color: '#3498db',
         textDecoration: 'none'

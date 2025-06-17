@@ -1,14 +1,22 @@
 import React from 'react';
 import { Button } from '@mui/material'
 
+// Displays title and navigation buttons
 const Navbar = () => {
     return (
         <nav style={styles.navbar}>
             <div style={styles.container}>
+                {/* Title */}
                 <h2 style={styles.title}>ServeTogether</h2>
+
+                {/* Navigation buttons container */}
                 <div style={styles.buttonContainer}>
+
+                    {/* Authentication buttons */}
                     <Button href="/login">Login</Button>
                     <Button href="/register">Register</Button>
+
+                    {/* Primary app functionality buttons */}
                     <Button href="/profile">Profile</Button>
                     <Button href="/events">Event Management</Button>
                     <Button href="/matching">Volunteer Match</Button>
@@ -20,14 +28,17 @@ const Navbar = () => {
     );
 };
 
+// Custom styles 
 const styles = {
     
+    // Main navbar container
     navbar: {
         backgroundColor: '#502c2c',
         color: 'white',
         padding: '1rem'
     },
 
+    // Flexbox container
     container: {
         display: 'flex',
         flexDirection: 'column',
@@ -35,11 +46,13 @@ const styles = {
         gap: '1rem'
     },
 
+    // App title 
     title: {
         margin: 0,
         textAlign: 'center'
     },
 
+    // Button container(s)
     buttonContainer: {
         display: 'flex',
         gap: '1rem',
@@ -47,6 +60,7 @@ const styles = {
         justifyContent: 'center'
     },
 
+    // Button styling
     button: {
         color: 'white',
         borderColor: 'white'

@@ -1,8 +1,10 @@
+/* Main app component styling */
 .App {
   padding: 2rem;
   font-family: sans-serif;
 }
 
+/* Body styling with background image setup */
 body {
   /*background-image: url('https://www.hult.edu/blog/media/uploads/2019/01/shutterstock_605300333_FEAT.jpg');*/
   background-size: cover;
@@ -13,6 +15,7 @@ body {
   padding: 0;
 }
 
+/* Main content area */
 .main-content {
   background-color: black;
   min-height: calc(100vh - 200px);
