@@ -8,8 +8,15 @@ ability to soft-delete messages
 ability to reply to messages 
 notifications should be received as Assignments, Updates, or Reminders
 
-
 */ 
+
+/// *Fix its* ///
+/*
+date for message received and message sent are inconsistent
+ (June vs 6)
+ subject line is mandatory
+*/
+
 
 
 const NotificationSystem = () => {

@@ -5,18 +5,19 @@ import {
 
 // TO DO //
 /*
-For the table, add pagination, sorting by date, and ability to edit participation status inline.
 Ability to soft-delete entries
 
 */
 
-
-
-
 const HistoryPage = () => {
+
+  //used for searching through table for specific volunteer
   const [search, setSearch] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
-  const [focused, setFocused] = useState(false);
+
+  //used for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Hardcoded volunteer list
   const volunteerList = [
@@ -67,6 +68,16 @@ const HistoryPage = () => {
     ? allHistory.filter(entry => entry.volunteer === selectedVolunteer)
     : allHistory;
 
+
+
+  //sorting history by date
+  const sortedHistory = [...filteredHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const totalPages = Math.ceil(sortedHistory.length / itemsPerPage);
+
+  //for pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const paginatedItems = sortedHistory.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
   <Box sx={{ p: 3 }}>
@@ -136,7 +147,7 @@ const HistoryPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredHistory.map((event, index) => (
+            {paginatedItems.map((event, index) => (
               <TableRow key={index}>
                 <TableCell>{event.volunteer}</TableCell>
                 <TableCell>{event.eventName}</TableCell>
@@ -151,6 +162,26 @@ const HistoryPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+        {/*Pagination stuff */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2 }}>
+        <Button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(prev => prev - 1)}
+        >
+          Previous
+        </Button>
+        <Typography sx={{ alignSelf: 'center' }}>
+          Page {currentPage} of {totalPages}
+        </Typography>
+        <Button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(prev => prev + 1)}
+        >
+          Next
+        </Button>
+      </Box>
+
     </Box>
   );
 };
