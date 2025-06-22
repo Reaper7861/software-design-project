@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Select from 'react-select';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 
 const ProfilePage = () => {
@@ -9,7 +8,6 @@ const ProfilePage = () => {
     const [formData, setFormData] = useState({
         fullName: '',
         address1: '',
-        address2: '',
         address2: '',
         city: '',
         state: '',
@@ -22,6 +20,43 @@ const ProfilePage = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
+    const dropdownRef = useRef();
+
+    const toggleSkillDropdown = () => {
+    setSkillDropdownOpen(prev => !prev);
+    };
+
+    const toggleSkill = (skill, checked) => {
+    setFormData(prev => {
+        const newSkills = checked
+        ? [...prev.skills, skill]
+        : prev.skills.filter(s => s !== skill);
+        return { ...prev, skills: newSkills };
+    });
+    };
+
+    const removeSkill = (skill) => {
+    setFormData(prev => ({
+        ...prev,
+        skills: prev.skills.filter(s => s !== skill)
+    }));
+    };
+
+    useEffect(() => {
+    const handleClickOutside = (e) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setSkillDropdownOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+    }, []);
+
+    
 
     // array of skills
     const skillOptions = [
@@ -37,7 +72,7 @@ const ProfilePage = () => {
         'Community Outreach'
     ];    
 
-
+    
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -66,74 +101,107 @@ const ProfilePage = () => {
     // handles constraints
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         setError('');
 
+        //no whitespace for name
         if (!formData.fullName.trim()) {
             setError('Full Name is required.');
+            setLoading(false);
             return;
           }
           
+          //name max characters
           if (formData.fullName.length > 50) {
             setError('Full Name cannot exceed 50 characters.');
+            setLoading(false);
             return;
           }
 
-
+          //no whitespace for address
           if (!formData.address1.trim()) {
             setError('Address is required.');
+            setLoading(false);
             return;
           }
           
+          //address max length
           if (formData.address1.length > 100) {
             setError('Address cannot exceed 100 characters.');
+            setLoading(false);
             return;
           }
 
-
+          //address max length
           if (formData.address2.length > 100) {
             setError('Address cannot exceed 100 characters.');
+            setLoading(false);
             return;
           }
 
+          //city max length
           if (formData.city.length > 100) {
             setError('City cannot exceed 100 characters.');
+            setLoading(false);
             return;
           }
 
+        //no whitespace for city
           if (!formData.city.trim()) {
             setError('City is required.');
+            setLoading(false);
             return;
           }
 
-        
+        //no null for state 
         if (!formData.state) {
             setError('Please select your state');
+            setLoading(false);
             return;
         }
 
-
+        //must meet format given for zip
         if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
             setError('Zip Code must be 5 digits or 5+4 format (e.g. 12345 or 12345-6789)');
+            setLoading(false);
             return;
         }
 
-
+        //no null for skills
         if (formData.skills.length === 0) {
             setError('Please select at least one skill');
+            setLoading(false);
             return;
         }
 
-
+        //no null for availability
         if (formData.availability.length === 0) {
             setError('Please select at least one availability date.');
+            setLoading(false);
             return;
           }
           
+
+        //attempt to update
+        try{
+            console.log('Attempgin Update. Please Wait', formData);
+
+            setTimeout(() => {
+                navigate('/events');
+                setLoading(false);
+            }, 1000);
+        
+        } catch (err) {
+            setError('Update failed. Please try again.');
+            setLoading(false);
+        }
+
+
         
     };
 
-
-    // actual text format
+    
+    // actual text format 
     return (
         <div style={styles.container}>
             <div style={styles.card}>
@@ -277,26 +345,89 @@ const ProfilePage = () => {
                         </div>
 
                         
-                        <div style={styles.formGroup}>
+
+
+
+                        <div style={styles.formGroup} ref={dropdownRef}>
                         <label style={styles.label}>Skills <span style={{ color: 'red' }}>*</span></label>
-                            <select
-                                multiple
-                                name="skills"
-                                value={formData.skills}
-                                onChange={(e) => {
-                                    const selected = Array.from(e.target.selectedOptions).map(option => option.value);
-                                    setFormData(prev => ({ ...prev, skills: selected }));
-                                }}
-                                style={{ ...styles.input, height: '120px' }}
-                                
-                            >
-                                {skillOptions.map((skill) => (
-                                    <option key={skill} value={skill}>
-                                        {skill}
-                                    </option>
-                                ))}
-                            </select>
+
+                        <div
+                            onClick={toggleSkillDropdown}
+                            style={{
+                            ...styles.input,
+                            cursor: 'pointer',
+                            position: 'relative',
+                            userSelect: 'none',
+                            backgroundColor: '#fff'
+                            }}
+                        >
+                            {formData.skills.length === 0 ? 'Select skills...' : formData.skills.join(', ')}
                         </div>
+
+                        {skillDropdownOpen && (
+                            <div style={{
+                            position: 'absolute',
+                            backgroundColor: 'white',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            marginTop: '0.25rem',
+                            zIndex: 1000,
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            padding: '0.5rem',
+                            width: '100%'
+                            }}>
+                            {skillOptions.map(skill => (
+                                <label key={skill} style={{ display: 'block', marginBottom: '0.25rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.skills.includes(skill)}
+                                    onChange={(e) => toggleSkill(skill, e.target.checked)}
+                                />
+                                {' '}
+                                {skill}
+                                </label>
+                            ))}
+                            </div>
+                        )}
+
+                        {/* Tags for selected skills */}
+                        <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {formData.skills.map(skill => (
+                            <div
+                                key={skill}
+                                style={{
+                                backgroundColor: '#3498db',
+                                color: 'white',
+                                borderRadius: '3px',
+                                padding: '0.25rem 0.5rem',
+                                display: 'flex',
+                                alignItems: 'center'
+                                }}
+                            >
+                                {skill}
+                                <button
+                                type="button"
+                                onClick={() => removeSkill(skill)}
+                                style={{
+                                    marginLeft: '0.5rem',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                                >
+                                ×
+                                </button>
+                            </div>
+                            ))}
+                        </div>
+                        </div>
+
+
+
+
 
 
                         <div style={styles.formGroup}>
@@ -361,6 +492,9 @@ const ProfilePage = () => {
                         >
                             {loading ? 'Updating...' : 'Update'}
                         </button>
+
+
+
                 </form>
 
             </div>
