@@ -6,7 +6,7 @@
 
 /* Body styling with background image setup */
 body {
-  /*background-image: url('https://www.hult.edu/blog/media/uploads/2019/01/shutterstock_605300333_FEAT.jpg');*/
+  background-image: url('https://www.hult.edu/blog/media/uploads/2019/01/shutterstock_605300333_FEAT.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
