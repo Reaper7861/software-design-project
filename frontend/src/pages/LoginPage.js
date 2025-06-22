@@ -35,6 +35,20 @@ const LoginPage = () => {
             return;
         }
 
+        // Email field length validation
+        if(formData.email.length > 75){
+            setError('Email cannot exceed 75 characters');
+            setLoading(false);
+            return;
+        }
+
+        // Password field length validation
+        if(formData.password.length > 75){
+            setError('Password cannot exceed 75 characters');
+            setLoading(false);
+            return;
+        }
+
         try{
             console.log('Login attempt:', formData);
 

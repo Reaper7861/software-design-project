@@ -34,6 +34,24 @@ const RegisterPage = () => {
             setError('Please fill in all fields');
             return;
         }
+
+            // Email field length validation
+        if(formData.email.length > 75){
+            setError('Email cannot exceed 75 characters');
+            return;
+        }
+
+        // Password field length validation
+        if(formData.password.length > 75){
+            setError('Password cannot exceed 75 characters');
+            return;
+        }
+
+        // Confirm Password field length validation
+        if(formData.confirmPassword.length > 75){
+            setError('Password cannot exceed 75 characters');
+            return;
+        }
         
         // Check if passwords match
         if(formData.password !== formData.confirmPassword){
@@ -48,7 +66,7 @@ const RegisterPage = () => {
         }
 
         // Password must consist of uppercase, lowercase, number, and special character
-        const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
         // Check if password contains the following
         if(!passRegex.test(formData.password)){
@@ -98,6 +116,7 @@ const RegisterPage = () => {
                             onChange={handleChange}
                             style={styles.input}
                             placeholder="Enter email"
+                            maxLength="75"
                             required
                         />
                     </div>
@@ -112,6 +131,7 @@ const RegisterPage = () => {
                             onChange={handleChange}
                             style={styles.input}
                             placeholder="Enter password"
+                            maxLength="75"
                             required
                         />
                     </div>
@@ -126,6 +146,7 @@ const RegisterPage = () => {
                             onChange={handleChange}
                             style={styles.input}
                             placeholder="Confirm password"
+                            maxLength="75"
                             required
                         />
                     </div>

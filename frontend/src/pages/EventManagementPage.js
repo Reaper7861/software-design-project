@@ -24,48 +24,48 @@ const EventManagement = () => {
     const availableSkills = ['First Aid', 'Event Planning', 'Teamwork', 'Communication', 'Logistics'];
     const urgencyOptions = ['Low', 'Medium', 'High'];
 
-    // Hardcoded demo events
-    const demoEvents = [
-        {
-            id: 1,
-            name: 'Community Cleanup',
-            description: 'A neighborhood cleanup event to promote environmental awareness.',
-            location: 'Central Park',
-            skills: ['Teamwork', 'Logistics'],
-            urgency: 'Medium',
-            date: '2025-07-01'
-        },
-        {
-            id: 2,
-            name: 'First Aid Workshop',
-            description: 'Learn basic first aid skills to assist in emergencies.',
-            location: 'Community Center',
-            skills: ['First Aid', 'Communication'],
-            urgency: 'High',
-            date: '2025-07-15'
-        }
-    ];
-
     // Load demo events and merge with localStorage
+    // Hardcoded demo events
     useEffect(() => {
-        //set loading state to true while fetching data
-        setLoading(true);
-        try {
-            // parse localStorage data or initialize with empty arrays
-            const localData = JSON.parse(localStorage.getItem('appData')) || { events: [], users: [], matches: [] };
-            // merge demo events with localStorage events, avoiding duplicates
-            const mergedEvents = [
-                ...demoEvents,
-                ...localData.events.filter(le => !demoEvents.some(de => de.id === le.id))
-            ];
-            // update the state with merged events
-            setEvents(mergedEvents);
-            //reset form data for new event creation
-            setLoading(false);
-        } catch (err) {
-            setError('Unexpected error loading data.');
-            setLoading(false);
-        }
+        const demoEvents = [
+            {
+                id: 1,
+                name: 'Community Cleanup',
+                description: 'A neighborhood cleanup event to promote environmental awareness.',
+                location: 'Central Park',
+                skills: ['Teamwork', 'Logistics'],
+                urgency: 'Medium',
+                date: '2025-07-01'
+            },
+            {
+                id: 2,
+                name: 'First Aid Workshop',
+                description: 'Learn basic first aid skills to assist in emergencies.',
+                location: 'Community Center',
+                skills: ['First Aid', 'Communication'],
+                urgency: 'High',
+                date: '2025-07-15'
+            }
+        ];
+
+            //set loading state to true while fetching data
+            setLoading(true);
+            try {
+                // parse localStorage data or initialize with empty arrays
+                const localData = JSON.parse(localStorage.getItem('appData')) || { events: [], users: [], matches: [] };
+                // merge demo events with localStorage events, avoiding duplicates
+                const mergedEvents = [
+                    ...demoEvents,
+                    ...localData.events.filter(le => !demoEvents.some(de => de.id === le.id))
+                ];
+                // update the state with merged events
+                setEvents(mergedEvents);
+                //reset form data for new event creation
+                setLoading(false);
+            } catch (err) {
+                setError('Unexpected error loading data.');
+                setLoading(false);
+            }
     }, []); // empty dependency array to run only once on mount
 
     // Handlers for form input changes, submission, editing, and deletion
