@@ -12,6 +12,8 @@ import EventManagementPage from './pages/EventManagementPage'
 import MatchPage from './pages/MatchPage'
 import NotificationsPage from './pages/NotificationsPage'
 import HistoryPage from './pages/HistoryPage'
+import PhantomPage from './pages/PhantomPage'
+import Homepage from './pages/Homepage'
 
 // Main app component
 function App() {
@@ -26,6 +28,7 @@ function App() {
          
         {/* Define all application routes */}
         <Routes>
+          <Route path="/homepage" element={<Homepage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProfilePage />} />
@@ -33,6 +36,7 @@ function App() {
           <Route path="/matching" element={<MatchPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/phantompage" element={<PhantomPage />} />
         </Routes>
       </div>
     </AuthProvider>

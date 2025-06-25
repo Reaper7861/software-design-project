@@ -11,6 +11,9 @@ const Navbar = () => {
 
                 {/* Navigation buttons container */}
                 <div style={styles.buttonContainer}>
+                    
+                    {/* Landing page */}
+                    <Button href="/homepage">Homepage</Button>
 
                     {/* Authentication buttons */}
                     <Button href="/login">Login</Button>
