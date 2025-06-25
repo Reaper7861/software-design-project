@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Box, Button, Typography, TextField, Paper, List, ListItem, ListItemButton, ListItemText, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+  Box, Button, Typography, TextField, Paper, List, ListItem, ListItemButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 
 // TO DO //
@@ -16,7 +16,6 @@ Ability to soft-delete entries
 const HistoryPage = () => {
   const [search, setSearch] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
-  const [focused, setFocused] = useState(false);
 
   // Hardcoded volunteer list
   const volunteerList = [
