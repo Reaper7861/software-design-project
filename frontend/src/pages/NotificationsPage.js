@@ -155,18 +155,21 @@ return (
             {/*filters*/}
             <Button
               variant={filterType === 'all' ? 'contained' : 'outlined'}
+              color="secondary"
               onClick={() => setFilterType('all')}
             >
               All
             </Button>
             <Button
               variant={filterType === 'sent' ? 'contained' : 'outlined'}
+              color="secondary"
               onClick={() => setFilterType('sent')}
             >
               Sent
             </Button>
             <Button
               variant={filterType === 'received' ? 'contained' : 'outlined'}
+              color="secondary"
               onClick={() => setFilterType('received')}
             >
               Received
@@ -296,8 +299,8 @@ return (
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={sendNotification}>
+          <Button color="secondary"onClick={() => setOpen(false)}>Cancel</Button>
+          <Button color="secondary" variant="contained" onClick={sendNotification}>
             Send
           </Button>
         </DialogActions>

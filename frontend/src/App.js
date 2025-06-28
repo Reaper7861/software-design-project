@@ -26,7 +26,7 @@ const theme = createTheme({
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#DCDCB0',         // beige but darker 
+      main: '#B66E41',         // beige but darker #DCDCB0
     },
     
     buttonSecondary: { main: '#B66E41' }, 

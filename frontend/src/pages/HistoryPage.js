@@ -167,6 +167,7 @@ const HistoryPage = () => {
         {/*Pagination stuff */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2 }}>
         <Button
+         color="secondary"
           disabled={currentPage === 1}
           onClick={() => setCurrentPage(prev => prev - 1)}
         >
@@ -176,6 +177,7 @@ const HistoryPage = () => {
           Page {currentPage} of {totalPages}
         </Typography>
         <Button
+          color="secondary"
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage(prev => prev + 1)}
         >
