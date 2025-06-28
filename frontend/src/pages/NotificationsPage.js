@@ -303,6 +303,8 @@ return (
             fullWidth
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
+            inputProps={{ maxLength: 50 }}
+            helperText={`${subject.length}/50 characters`}
             sx={{ mb: 2 }}
             />
 
@@ -313,6 +315,8 @@ return (
             fullWidth
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            inputProps={{ maxLength: 200 }}
+            helperText={`${message.length}/200 characters`}
             sx={{ mb: 2 }}
           />
           {status && (

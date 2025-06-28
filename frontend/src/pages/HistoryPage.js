@@ -92,6 +92,8 @@ const HistoryPage = () => {
             color='primary' 
             fullWidth
             value={search}
+            inputProps={{ maxLength: 50 }}
+            helperText={`${search.length}/50 characters`}
             onChange={(e) => {
               setSearch(e.target.value);
               setSelectedVolunteer(null);
