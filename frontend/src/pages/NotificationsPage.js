@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText, Divider,  Dialog, DialogTitle, DialogContent, DialogActions, } from '@mui/material';
-
+import SendIcon from '@mui/icons-material/Send';
 
 // TO DO //
 /* 
@@ -135,49 +135,73 @@ return (
 <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
       {/* Left Sidebar */}
       
-      <Box sx={{ width: '250px', p: 3, borderRight: '1px solid #ddd' }}>
-        <Paper sx={{ p: 3, height: '100%' }}>
+       <Box
+        sx={{
+          width: 250,
+          height: '100vh',
+          borderRight: '1px solid #ddd',
+          bgcolor: '#f7f7f7',
+          position: 'sticky',
+          top: 0,
+          p: 2,
+          boxSizing: 'border-box',
+          overflowY: 'auto',
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            bgcolor: 'transparent',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
           <Button
             variant="contained"
             color="secondary"
             onClick={() => setOpen(true)}
             fullWidth
-            sx={{ mb: 2 }}
-          >
-            Send Notification
+            endIcon={<SendIcon />} //the send icon at the end of txt
+            sx={{ mb: 2,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',      // bigger text
+                paddingY: 1.25,           // more vertical padding
+                height: 48,              // fixed height, optional
+                borderRadius: 3,         // slightly more rounded corners
+                lineHeight: 1.0,
+            }}>
+            Send
           </Button>
-          
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+
+          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
             Filter Notifications
           </Typography>
 
-           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {/*filters*/}
-            <Button
-              variant={filterType === 'all' ? 'contained' : 'outlined'}
-              color="secondary"
-              onClick={() => setFilterType('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={filterType === 'sent' ? 'contained' : 'outlined'}
-              color="secondary"
-              onClick={() => setFilterType('sent')}
-            >
-              Sent
-            </Button>
-            <Button
-              variant={filterType === 'received' ? 'contained' : 'outlined'}
-              color="secondary"
-              onClick={() => setFilterType('received')}
-            >
-              Received
-            </Button>
-             {/*filters end*/}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {['all', 'sent', 'received'].map((type) => (
+              <Button
+                key={type}
+                variant={filterType === type ? 'contained' : 'outlined'}
+                color="secondary"
+                onClick={() => setFilterType(type)}
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  fontWeight: filterType === type ? 'bold' : 'normal',
+                  borderRadius: 2,
+                }}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Button>
+            ))}
           </Box>
         </Paper>
       </Box>
+
       
 
       {/* Right: Notification Feed */}
