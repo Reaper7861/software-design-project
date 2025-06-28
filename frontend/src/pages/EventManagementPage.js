@@ -304,7 +304,7 @@ const EventManagement = () => {
                 {/* Submit button for creating or updating events */}
                 <Button
                     variant="contained"
-                    color="primary"
+                    color="secondary"
                     fullWidth
                     type="submit"
                     disabled={loading}
@@ -331,7 +331,7 @@ const EventManagement = () => {
                                             {/* Edit and Delete buttons for each event */}
                                             <Button
                                                 variant="outlined"
-                                                color="primary"
+                                                color="secondary"
                                                 size="small"
                                                 onClick={() => handleEdit(event)}
                                                 sx={{ mr: 1 }}

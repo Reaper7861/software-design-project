@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@mui/material'
 
+
 // Displays title and navigation buttons
 const Navbar = () => {
     return (
@@ -36,9 +37,11 @@ const styles = {
     
     // Main navbar container
     navbar: {
-        backgroundColor: '#502c2c',
-        color: 'white',
-        padding: '1rem'
+        backgroundColor: '#483C32',  //taupe 
+        color: '#F5F5DC',  //like a beige for the text
+        padding: '1rem',
+        fontFamily: 'Segoe UI', //font
+        fontSize: '30px', //text size
     },
 
     // Flexbox container

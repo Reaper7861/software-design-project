@@ -68,8 +68,8 @@ const HistoryPage = () => {
 
 
   return (
-  <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
+  <Box sx={{ p: 3,  minHeight: '100vh',  backgroundColor: 'rgba(138, 154, 91, 0.3)'}}>
+      <Typography color='primary' variant="h5" gutterBottom>
         Volunteer Participation History
       </Typography>
 
@@ -77,6 +77,7 @@ const HistoryPage = () => {
         <Box sx={{ width: 300 }}>
           <TextField
             label="Search Volunteer"
+            color='primary' 
             fullWidth
             value={search}
             onChange={(e) => {

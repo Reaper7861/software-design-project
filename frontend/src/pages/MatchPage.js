@@ -279,7 +279,7 @@ const MatchPage = () => {
                 {/* Submit button to create match */}
                 <Button
                     variant="contained"
-                    color="primary"
+                    color="secondary"
                     fullWidth
                     type="submit"
                     disabled={loading}

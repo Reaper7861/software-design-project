@@ -118,13 +118,13 @@ const NotificationSystem = () => {
 }, []);
 
 return (
-<Box sx={{ display: 'flex', height: '100vh' }}>
+<Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
       {/* Left Sidebar */}
       <Box sx={{ width: '250px', p: 3, borderRight: '1px solid #ddd' }}>
         <Paper sx={{ p: 3, height: '100%' }}>
           <Button
             variant="contained"
-            color="primary"
+            color="secondary"
             onClick={() => setOpen(true)}
             fullWidth
           >
