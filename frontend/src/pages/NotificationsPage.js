@@ -4,13 +4,19 @@ import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText
 
 // TO DO //
 /* 
-filter messages by receieved and sent
 ability to soft-delete messages
 ability to reply to messages 
 notifications should be received as Assignments, Updates, or Reminders
 
-
 */ 
+
+/// *Fix its* ///
+/*
+date for message received and message sent are inconsistent
+ (June vs 6)
+ subject line is mandatory
+*/
+
 
 
 const NotificationSystem = () => {
@@ -30,6 +36,9 @@ const NotificationSystem = () => {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const [sentNotifications, setSentNotifications] = useState([]);
+
+  //filters the notifs by type
+  const [filterType, setFilterType] = useState('all'); // 'all' | 'sent' | 'received'
 
   
 /***** HARD CODED DATA - DELETE LATER****************************/
@@ -54,6 +63,7 @@ const NotificationSystem = () => {
   };
 //
 
+////SET UP NOTIFICATION HERE ////
   const sendNotification = () => {
      if (!selectedVolunteer) {
       setStatus('Please select a volunteer.');
@@ -66,13 +76,14 @@ const NotificationSystem = () => {
 
     ////the  notification content itself
     const newNotification = {
+      type: 'sent',
       name: selectedVolunteer.name,
       email: selectedVolunteer.email,
       subject,
       message,
       time: new Date().toLocaleString()
     };
-
+//////////////////////////////////////
     
 
     // Simulate sending notification
@@ -92,6 +103,7 @@ const NotificationSystem = () => {
   useEffect(() => {
   const fakeData = [
     {
+      type: 'received',
       name: 'Jordan Smith',
       email: 'jordan@example.com',
       subject: 'Urgent Reminder',
@@ -99,6 +111,7 @@ const NotificationSystem = () => {
       time: 'June 10, 2025, 9:00 AM'
     },
     {
+      type: 'received',
       name: 'Ava Chen',
       email: 'ava.chen@example.com',
       subject: 'Assignment',
@@ -106,6 +119,7 @@ const NotificationSystem = () => {
       time: 'June 9, 2025, 4:45 PM'
     },
     {
+      type: 'received',
       name: 'Liam Patel',
       email: 'liam.patel@example.com',
       subject: 'Thank you',
@@ -120,6 +134,7 @@ const NotificationSystem = () => {
 return (
 <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
       {/* Left Sidebar */}
+      
       <Box sx={{ width: '250px', p: 3, borderRight: '1px solid #ddd' }}>
         <Paper sx={{ p: 3, height: '100%' }}>
           <Button
@@ -127,48 +142,89 @@ return (
             color="secondary"
             onClick={() => setOpen(true)}
             fullWidth
+            sx={{ mb: 2 }}
           >
             Send Notification
           </Button>
+          
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Filter Notifications
+          </Typography>
+
+           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {/*filters*/}
+            <Button
+              variant={filterType === 'all' ? 'contained' : 'outlined'}
+              onClick={() => setFilterType('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={filterType === 'sent' ? 'contained' : 'outlined'}
+              onClick={() => setFilterType('sent')}
+            >
+              Sent
+            </Button>
+            <Button
+              variant={filterType === 'received' ? 'contained' : 'outlined'}
+              onClick={() => setFilterType('received')}
+            >
+              Received
+            </Button>
+             {/*filters end*/}
+          </Box>
         </Paper>
       </Box>
+      
 
       {/* Right: Notification Feed */}
+      
       <Box sx={{ flexGrow: 1, p: 3, overflowY: 'auto' }}>
         <Paper sx={{ p: 3 }}>
+          
           <Typography variant="h5" gutterBottom>
             Notification Feed
           </Typography>
 
-          {sentNotifications.length === 0 ? (
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              No notifications sent yet.
-            </Typography>
-          ) : (
-            <List>
-              {sentNotifications.map((note, index) => (
-                <React.Fragment key={index}>
-                  <ListItem alignItems="flex-start">
-                    <ListItemText
-                      primary={`${note.subject} — ${note.name} (${note.email})`}
-                      secondary={
-                        <>
-                          <Typography component="span" variant="body2">
-                            {note.message}
-                          </Typography>
-                          <br />
-                          <Typography variant="caption" color="text.secondary">
-                            {note.time}
-                          </Typography>
-                        </>
-                      }
-                    />
-                  </ListItem>
-                  <Divider />
-                </React.Fragment>
-              ))}
-            </List>
-          )}
+          {(() => {
+  const filteredList = sentNotifications.filter(note =>
+    filterType === 'all' ? true : note.type === filterType
+  );
+
+  return filteredList.length === 0 ? (
+    <Typography variant="body1" sx={{ mt: 2 }}>
+      No {filterType} notifications.
+    </Typography>
+      ) : (
+        <List>
+          {filteredList.map((note, index) => (
+            <React.Fragment key={index}>
+              <ListItem alignItems="flex-start">
+                <ListItemText
+                  primary={
+                    <Typography variant="subtitle1" color={note.type === 'sent' ? 'primary' : 'secondary'}>
+                      {note.type === 'sent' ? `You → ${note.name}` : `${note.name} → You`} — {note.subject}
+                    </Typography>
+                  }
+                  secondary={
+                    <>
+                      <Typography component="span" variant="body2">
+                        {note.message}
+                      </Typography>
+                      <br />
+                      <Typography variant="caption" color="text.secondary">
+                        {note.time}
+                      </Typography>
+                    </>
+                  }
+                />
+              </ListItem>
+              <Divider />
+            </React.Fragment>
+          ))}
+        </List>
+      );
+    })()}
         </Paper>
       </Box>
 
