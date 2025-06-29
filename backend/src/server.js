@@ -1,3 +1,4 @@
+// Setup
 const app = require('./app');
 
 // Port

@@ -1,7 +1,12 @@
+// Setup
 const express = require('express');
 const cors = require('cors')
+const userRoutes = require('./routes/userRoutes');
 require('dotenv').config();
 
+
+// Import routes
+const authRoutes = require('./routes/authRoutes')
 
 // Create Express
 const app = express();
@@ -31,6 +36,10 @@ app.get('/', (req, res) => {
         }
     });
 });
+
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // 404 Handler
 app.use((req, res) => {

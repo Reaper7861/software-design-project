@@ -1,0 +1,57 @@
+// Setup
+const authService = require('../services/authService');
+
+
+class AuthController {
+    // Register new user
+    async register(req, res){
+        try {
+            const {email, password} = req.body;
+
+            const result = await authService.registerUser(email, password);
+
+            res.status(201).json({
+                message: 'User registered successfully',
+                user: result.user
+            });
+        } catch (error) {
+            console.error('Registration controller error: ', error);
+
+            if(error.message === 'Email already exists') {
+                return res.status(409).json({
+                    error: 'Registration failed',
+                    message: 'Email already exists'
+                });
+            }
+
+            res.status(400).json({
+                error: 'Registration failed',
+                message: error.message
+            });
+        }
+    }
+
+
+    // Obtain current user information
+    async getCurrentUser(req, res) {
+        try {
+            // User authenticated via middleware
+            const user = await authService.getUserByUid(req.user.uid);
+
+            res.json({
+                user: {
+                    ...user,
+                    profileCompleted: user.profile.profileCompleted || false
+                }
+            });
+        } catch (error) {
+            console.error('Get user error: ', error);
+            res.status(404).json({
+                error: 'User not found',
+                message: error.message
+            });
+        }
+    }
+}
+
+module.exports = new AuthController();

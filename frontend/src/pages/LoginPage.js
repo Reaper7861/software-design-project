@@ -1,5 +1,8 @@
 import React, {useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {signInWithEmailAndPassword} from 'firebase/auth';
+import {auth} from '../firebase';
+
 
 // Form with email and password validation
 const LoginPage = () => {
@@ -52,11 +55,19 @@ const LoginPage = () => {
         try{
             console.log('Login attempt:', formData);
 
-            // Simulation of login right now (placeholder)
-            setTimeout(() => {
-                navigate('/profile');
-                setLoading(false);
-            }, 1000);
+            // Firebase authentication
+            const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+            const token = await userCredential.user.getIdToken();
+
+            // Send token to backend to get user profile/validate session
+            await fetch('http://localhost:5000/api/users/profile', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            navigate('/profile');
+            setLoading(false);
         
         } catch (err) {
             setError('Login failed. Please try again.');

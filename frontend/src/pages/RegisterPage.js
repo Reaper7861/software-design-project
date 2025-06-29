@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
+
 
 // Registration form with email, password, and confirm pasword confirmation
 const RegisterPage = () => {
@@ -83,16 +86,28 @@ const RegisterPage = () => {
                 password: formData.password
             });
 
-            // Simulation of registration right now (placeholder)
-            setTimeout(() => {
-                navigate('/login', {
-                    state: { message: 'Registration successful. Please log in.'}
-                });
-                setLoading(false);
-            }, 1000);
+            // Firebase registration
+            const userCredential = await createUserWithEmailAndPassword(
+                auth, 
+                formData.email,
+                formData.password
+            );
+
+
+            const token = await userCredential.user.getIdToken();
+
+            await fetch('http://localhost:5000/api/users/profile', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+
+            navigate('/profile');
 
         } catch (err) {
-            setError('Registration failed. Please try again.');
+            setError('Registration failed ' + err.message);
+        } finally {
             setLoading(false);
         }
     };
