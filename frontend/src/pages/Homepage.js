@@ -32,11 +32,11 @@ function HomePage() {
             For volunteer scheduling, event management, and more.
           </Typography>
 
-            {/*
-          <Button variant="contained" color="secondary" size="large">
+            
+          <Button variant="contained" color="secondary" size="large" href="/login">
             Get Started
           </Button>
-           */}
+           
         </Container>
       </Box>
 
