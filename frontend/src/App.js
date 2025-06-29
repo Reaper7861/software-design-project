@@ -78,6 +78,7 @@ function App() {
          
         {/* Define all application routes */}
         <Routes>
+          <Route path="/" element={<Homepage />} />
           <Route path="/homepage" element={<Homepage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
