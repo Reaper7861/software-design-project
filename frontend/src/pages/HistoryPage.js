@@ -81,7 +81,9 @@ const HistoryPage = () => {
 
   return (
   <Box sx={{ p: 3,  minHeight: '100vh',  backgroundColor: 'rgba(138, 154, 91, 0.3)'}}>
-      <Typography color='primary' variant="h5" gutterBottom>
+
+    <Paper sx={{ p: 3, mb: 3 }}>
+      <Typography variant="h5" gutterBottom>
         Volunteer Participation History
       </Typography>
 
@@ -89,9 +91,9 @@ const HistoryPage = () => {
         <Box sx={{ width: 300 }}>
           <TextField
             label="Search Volunteer"
-            color='primary' 
             fullWidth
             value={search}
+            color='taupe'
             inputProps={{ maxLength: 50 }}
             helperText={`${search.length}/50 characters`}
             onChange={(e) => {
@@ -126,14 +128,16 @@ const HistoryPage = () => {
               setSelectedVolunteer(null);
               setSearch('');
             }}
+            color='secondary'
             variant="outlined"
-            color="secondary"
             sx={{ height: '40px' }}
           >
             Clear Filter
           </Button>
         )}
       </Box>
+    
+
 
       <TableContainer component={Paper}>
         <Table>
@@ -169,7 +173,7 @@ const HistoryPage = () => {
         {/*Pagination stuff */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2 }}>
         <Button
-         color="secondary"
+         variant='contained'
           disabled={currentPage === 1}
           onClick={() => setCurrentPage(prev => prev - 1)}
         >
@@ -179,14 +183,14 @@ const HistoryPage = () => {
           Page {currentPage} of {totalPages}
         </Typography>
         <Button
-          color="secondary"
+          variant='contained'
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage(prev => prev + 1)}
         >
           Next
         </Button>
       </Box>
-
+</Paper>
     </Box>
   );
 };

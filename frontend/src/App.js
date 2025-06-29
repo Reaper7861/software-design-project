@@ -22,14 +22,26 @@ import CssBaseline from '@mui/material/CssBaseline'; // optional for consistent 
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#F5F5DC',         //  beige #F5F5DC
+      main: '#483C32',         //  taupe
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#B66E41',         // beige but darker #DCDCB0
+      main: '#F5F5DC',         // beige #DCDCB0
     },
-    
-    buttonSecondary: { main: '#B66E41' }, 
+    taupe: {
+      main: '#483C32',
+      contrastText: '#fff',
+    },
+    beige: {
+      main: '#F5F5DC'
+    },
+    darkbeige: {
+      main: '#DCDCB0',
+    },
+    text: {
+      primary: '#000000',         // default text
+      secondary: '#483C32',       // your custom secondary text color #5c5c5c
+    },
   },
   //this is to override all the button colors
  components: {

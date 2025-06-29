@@ -69,6 +69,12 @@ const NotificationSystem = () => {
       setStatus('Please select a volunteer.');
       return;
     }
+
+      if (!subject.trim()) {
+    setStatus('Please enter a subject before sending.');
+    return;
+    }
+
     if (!message.trim()) {
       setStatus('Please enter a message before sending.');
       return;
@@ -131,6 +137,7 @@ const NotificationSystem = () => {
   setSentNotifications(fakeData);
 }, []);
 
+
 return (
 <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
       {/* Left Sidebar */}
@@ -177,10 +184,7 @@ return (
             Send
           </Button>
 
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            Filter Notifications
-          </Typography>
-
+          
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {['all', 'sent', 'received'].map((type) => (
               <Button
@@ -229,7 +233,7 @@ return (
               <ListItem alignItems="flex-start">
                 <ListItemText
                   primary={
-                    <Typography variant="subtitle1" color={note.type === 'sent' ? 'primary' : 'secondary'}>
+                    <Typography variant="subtitle1" color={note.type === 'sent' ? 'text.primary' : 'text.secondary'}>
                       {note.type === 'sent' ? `You → ${note.name}` : `${note.name} → You`} — {note.subject}
                     </Typography>
                   }
@@ -261,6 +265,7 @@ return (
         <DialogContent>
           <TextField
             label="Search Volunteer"
+            color='taupe'
             fullWidth
             value={search}
             onChange={(e) => {
@@ -300,6 +305,7 @@ return (
 
           <TextField
             label="Subject"
+            color='taupe'
             fullWidth
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -310,6 +316,7 @@ return (
 
           <TextField
             label="Message"
+            color='taupe'
             multiline
             rows={4}
             fullWidth

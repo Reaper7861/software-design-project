@@ -14,18 +14,18 @@ const Navbar = () => {
                 <div style={styles.buttonContainer}>
                     
                     {/* Landing page */}
-                    <Button href="/homepage">Homepage</Button>
+                    <Button color='beige' href="/homepage">Homepage</Button>
 
                     {/* Authentication buttons */}
-                    <Button href="/login">Login</Button>
-                    <Button href="/register">Register</Button>
+                    <Button color='beige' href="/login">Login</Button>
+                    <Button color='beige' href="/register">Register</Button>
 
                     {/* Primary app functionality buttons */}
-                    <Button href="/profile">Profile</Button>
-                    <Button href="/events">Event Management</Button>
-                    <Button href="/matching">Volunteer Match</Button>
-                    <Button href="/notifications">Notifications</Button>
-                    <Button href="/history">Volunteer History</Button>
+                    <Button color='beige' href="/profile">Profile</Button>
+                    <Button color='beige' href="/events">Event Management</Button>
+                    <Button color='beige' href="/matching">Volunteer Match</Button>
+                    <Button color='beige' href="/notifications">Notifications</Button>
+                    <Button color='beige' href="/history">Volunteer History</Button>
                 </div>
             </div>
         </nav>

@@ -18,7 +18,7 @@ function HomePage() {
       >
         <Container>
           <Typography color="primary" variant="h3" gutterBottom  sx={{
-            color: 'primary.main',
+            color: 'beige.main',
             textShadow: '2px 2px 4px rgba(0, 0, 0, 0.6)',
             }} >
             Welcome to ServeTogether
@@ -26,16 +26,17 @@ function HomePage() {
 
 
           <Typography variant="h6" color="secondary" gutterBottom  sx={{
-                color: 'primary.main',
+                color: 'darkbeige.main',
                 textShadow: '2px 2px 4px rgba(0, 0, 0, 0.6)',
             }}>
             For volunteer scheduling, event management, and more.
           </Typography>
 
-
+            {/*
           <Button variant="contained" color="secondary" size="large">
             Get Started
           </Button>
+           */}
         </Container>
       </Box>
 
