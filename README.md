@@ -1,5 +1,11 @@
 # Software-Design-Project
 
+**Global**
+
+npm install firebase
+
+<br>
+
 **Frontend:**
 
 cd frontend 
@@ -15,8 +21,6 @@ npm start
 **Backend:** 
 
 cd backend
-
-npm install firebase
 
 npm run dev
 
