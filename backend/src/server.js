@@ -2,7 +2,7 @@
 const app = require('./app');
 
 // Port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 
 // Server start

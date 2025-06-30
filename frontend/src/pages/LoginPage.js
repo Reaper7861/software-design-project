@@ -60,7 +60,7 @@ const LoginPage = () => {
             const token = await userCredential.user.getIdToken();
 
             // Send token to backend to get user profile/validate session
-            await fetch('http://localhost:5000/api/users/profile', {
+            await fetch('http://localhost:8080/api/users/profile', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

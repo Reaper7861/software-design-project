@@ -96,7 +96,7 @@ const RegisterPage = () => {
 
             const token = await userCredential.user.getIdToken();
 
-            await fetch('http://localhost:5000/api/users/profile', {
+            await fetch('http://localhost:8080/api/users/profile', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
