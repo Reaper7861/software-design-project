@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText, Divider,  Dialog, DialogTitle, DialogContent, DialogActions, } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 
+///firebase stuff
+import { messaging } from '../firebase'; // adjust path to your firebase.js
+import { getToken, onMessage } from "firebase/messaging";
+
 // TO DO //
 /* 
 ability to soft-delete messages
@@ -64,6 +68,49 @@ const NotificationSystem = () => {
 //
 
 ////SET UP NOTIFICATION HERE ////
+
+//request permission here
+useEffect(() => {
+  const getMessagingToken = async () => {
+    try {
+      const currentToken = await getToken(messaging, {
+        vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k'  // in Firebase Console > Project Settings > Cloud Messaging
+      });
+      if (currentToken) {
+        console.log('FCM Token:', currentToken);
+        //save  token to Firestore or backend to target this device
+      } else {
+        console.warn('No registration token available. Request permission to generate one.');
+      }
+    } catch (err) {
+      console.error('An error occurred while retrieving token. ', err);
+    }
+  };
+
+  getMessagingToken();
+}, []);
+
+useEffect(() => {
+  const unsubscribe = onMessage(messaging, (payload) => {
+    console.log('Message received in foreground:', payload);
+
+    // You can optionally show a toast or insert it into your state
+    const incoming = {
+      type: 'received',
+      name: payload.notification?.title || 'System',
+      email: 'system@firebase.com',
+      subject: payload.notification?.title || 'No subject',
+      message: payload.notification?.body || '',
+      time: new Date().toLocaleString()
+    };
+
+    setSentNotifications((prev) => [incoming, ...prev]);
+  });
+
+  return () => unsubscribe();
+}, []);
+
+
   const sendNotification = () => {
      if (!selectedVolunteer) {
       setStatus('Please select a volunteer.');
