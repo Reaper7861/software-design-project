@@ -4,3 +4,4 @@ coverage/
 *.log
 dist/
 build/
+backend/serviceAccountKey.json
