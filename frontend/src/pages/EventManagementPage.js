@@ -52,7 +52,18 @@ const EventManagement = () => {
             setLoading(true);
             try {
                 // parse localStorage data or initialize with empty arrays
-                const localData = JSON.parse(localStorage.getItem('appData')) || { events: [], users: [], matches: [] };
+                let localDataRaw = localStorage.getItem('appData');
+                let localData;
+                if (localDataRaw) {
+                    try {
+                        localData = JSON.parse(localDataRaw);
+                    } catch (parseError) {
+                        console.error('Invalid JSON in localStorage:', parseError);
+                        localData = { events: [], users: [], matches: [] };
+                    }
+                } else {
+                    localData = { events: [], users: [], matches: [] };
+                }
                 // merge demo events with localStorage events, avoiding duplicates
                 const mergedEvents = [
                     ...demoEvents,
