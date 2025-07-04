@@ -5,3 +5,4 @@ coverage/
 dist/
 build/
 backend/serviceAccountKey.json
+.env

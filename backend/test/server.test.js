@@ -1,5 +1,8 @@
 // Setup
 
+// Force environment loading
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 // Import Supertest to simulate HTTP requests
 const request = require("supertest");
 // Import Express app
@@ -33,7 +36,7 @@ let volunteerIdToken;
 let createdEmails = [];
 
 
-const apiKey = "AIzaSyBc63gB-VcvAkF9E3jnD_C6IINP2S_MBhU";
+const apiKey = process.env.FIREBASE_API_KEY;
 
 
 // Use REST API to get ID token
@@ -112,8 +115,6 @@ describe("API Endpoints", () => {
         email: newEmail,  
         password: testPassword
       });
-
-    console.log("REGISTER RESPONSE:", JSON.stringify(res.body, null, 2));
 
     // Expected status code
     expect(res.statusCode).toBe(201);
