@@ -1,4 +1,4 @@
-const admin = require('./firebaseAdmin');
+const admin = require('firebase-admin');
 
 const testToken = 'cl3RvjTgPJbUcv9A8qWiAM:APA91bFO3qG6VmZydw4_EWxCoh6bFw2ojVx_Gfhoz8PbDOZ8EyXMZ0Ey5Awkxs7QBj52dnPwsJ6DHczOr8TRwRk4vKZm_BPnwIk2GljVeGr40zObhrGY2mI'; //get the token from the browser console !!
 

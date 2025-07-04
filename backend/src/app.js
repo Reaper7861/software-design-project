@@ -8,6 +8,7 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/authRoutes')
 const volunteerHistoryRoutes = require('./routes/volunteerHistoryRoutes'); 
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Create Express
 const app = express();
@@ -43,6 +44,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/volunteer-history', volunteerHistoryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 Handler
 app.use((req, res) => {

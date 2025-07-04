@@ -3,6 +3,7 @@ import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText
 import SendIcon from '@mui/icons-material/Send';
 
 ///firebase stuff
+import { getAuth } from "firebase/auth";
 import { messaging } from '../firebase'; // adjust path to your firebase.js
 import { getToken, onMessage } from "firebase/messaging";
 
@@ -44,7 +45,50 @@ const NotificationSystem = () => {
   //filters the notifs by type
   const [filterType, setFilterType] = useState('all'); // 'all' | 'sent' | 'received'
 
-  
+
+  //grab the user token here once the component loads
+  useEffect(() => {
+  const sendFcmTokenToBackend = async () => {
+    try {
+      const currentToken = await getToken(messaging, {
+        vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k' 
+      ///from Project Settings>Cloud Messaging> Web configuration
+       });
+
+      if (!currentToken) {
+        console.warn('No FCM token available');
+        return;
+      }
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.warn('User not logged in');
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+
+      await fetch('/api/save-fcm-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ token: currentToken })
+      });
+
+      console.log('✅ FCM token sent to backend');
+    } catch (err) {
+      console.error('❌ Error sending FCM token:', err);
+    }
+  };
+
+  sendFcmTokenToBackend();
+}, []);
+
+
 /***** HARD CODED DATA - DELETE LATER****************************/
     const volunteerList = [
     { name: 'Jordan Smith', email: 'jordan@example.com' },
@@ -69,26 +113,6 @@ const NotificationSystem = () => {
 
 ////SET UP NOTIFICATION HERE ////
 
-//request permission here
-useEffect(() => {
-  const getMessagingToken = async () => {
-    try {
-      const currentToken = await getToken(messaging, {
-        vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k'  // in Firebase Console > Project Settings > Cloud Messaging
-      });
-      if (currentToken) {
-        console.log('FCM Token:', currentToken);
-        //save  token to Firestore or backend to target this device
-      } else {
-        console.warn('No registration token available. Request permission to generate one.');
-      }
-    } catch (err) {
-      console.error('An error occurred while retrieving token. ', err);
-    }
-  };
-
-  getMessagingToken();
-}, []);
 
 useEffect(() => {
   const unsubscribe = onMessage(messaging, (payload) => {
@@ -111,7 +135,9 @@ useEffect(() => {
 }, []);
 
 
-  const sendNotification = () => {
+///SEND NOTIFICATION HERE //
+
+  const sendNotification = async () => {
      if (!selectedVolunteer) {
       setStatus('Please select a volunteer.');
       return;
@@ -126,7 +152,41 @@ useEffect(() => {
       setStatus('Please enter a message before sending.');
       return;
     }
+      try {
+    const res = await fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: selectedVolunteer.email,
+        subject,
+        message,
+      }),
+    });
 
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to send notification');
+    }
+
+    setStatus(`Notification sent to ${selectedVolunteer.name}`);
+    const newNotification = {
+      type: 'sent',
+      name: selectedVolunteer.name,
+      email: selectedVolunteer.email,
+      subject,
+      message,
+      time: new Date().toLocaleString(),
+    };
+    setSentNotifications([newNotification, ...sentNotifications]);
+    setMessage('');
+    setOpen(false);
+    setSearch('');
+    setSelectedVolunteer(null);
+  } catch (error) {
+    setStatus(`Error: ${error.message}`);
+  }
+
+    /*
     ////the  notification content itself
     const newNotification = {
       type: 'sent',
@@ -148,6 +208,8 @@ useEffect(() => {
     setOpen(false);
     setSearch('');
     setSelectedVolunteer(null);
+    
+    */
   };
 
 

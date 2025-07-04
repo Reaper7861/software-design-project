@@ -10,6 +10,8 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
 
+//firestore support to store FCM tokens for each user
+const db = admin.firestore();
 
 // Export initialized admin instance
 module.exports = admin;
