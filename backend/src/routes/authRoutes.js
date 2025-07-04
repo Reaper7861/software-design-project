@@ -9,6 +9,9 @@ const{validateRegistration} = require('../middleware/validation');
 // Public routes
 router.post('/register', validateRegistration, authController.register);
 
+// Login route (verify Firebase ID tokens)
+router.post('/login', authController.login);
+
 // Protected routes (authentication required)
 router.get('/me', verifyToken, authController.getCurrentUser);
 

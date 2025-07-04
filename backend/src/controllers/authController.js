@@ -31,6 +31,35 @@ class AuthController {
         }
     }
 
+    // Login user by verifying Firebase token
+    async login(req, res) {
+        try {
+            // Get token from Auth header
+            const authHeader = req.headers.authorization;
+            if(!authHeader || !authHeader.startsWith("Bearer ")){
+                return res.status(400).json({error: "Missing/invalid Authorization header"});
+            }
+
+            const idToken = authHeader.split(" ")[1];
+
+            // Verify token via Firebase Admin SDK
+            const decodedToken = await authService.verifyFirebaseToken(idToken);
+
+            // Show user info
+            res.status(200).json({
+                message: "Login successful",
+                uid: decodedToken.uid,
+                email: decodedToken.email,
+                admin: decodedToken.admin || false
+            });
+        } catch(error) {
+            console.error("Login error: ", error);
+            res.status(401).json({
+                error: "Unauthorized",
+                message: error.message
+            });
+        }
+    }
 
     // Obtain current user information
     async getCurrentUser(req, res) {

@@ -61,27 +61,47 @@ const LoginPage = () => {
 
             // Firebase authentication
             const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-            const token = await userCredential.user.getIdToken();
+            const token = await userCredential.user.getIdToken(true);
 
-            // Send token to backend to get user profile/validate session
-            const res = await fetch('http://localhost:8080/api/auth/me', {
+            // Send token to backend to validate session
+            const loginRes = await fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            if(!res.ok){
-                throw new Error('Failed to fetch user profile');
+            const loginData = await loginRes.json();
+
+            console.log("LOGIN RESPONSE:", loginData);
+
+             if(!loginRes.ok){
+                throw new Error('Failed to fetch user');
             }
 
-            const data = await res.json();
+
+            // Send token to backend to get user profile
+            const profileRes = await fetch('http://localhost:8080/api/auth/me', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const profileData = await profileRes.json();
+
+            console.log("PROFILE RESPONSE:", profileData);
+
+            if(!profileRes.ok){
+                throw new Error('Failed to fetch user profile');
+            }
 
 
             // Store user in context
             setUser({
-                uid: data.user.uid,
-                email: data.user.email,
-                role: data.user.role
+                uid: loginData.uid,
+                email: loginData.email,
+                role: loginData.admin ? "administrator" : "volunteer",
+                profile: profileData.user.profile
             });
 
 

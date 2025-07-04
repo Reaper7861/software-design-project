@@ -24,9 +24,6 @@ const mockData = {
 
 // Hardcoded admin user
 mockData.users.set('65fRWpFmA2OVNXlEX4RiRv1LK3v2', {
-    uid: '65fRWpFmA2OVNXlEX4RiRv1LK3v2',
-    email: 'mehmoodsubhan2003@gmail.com',
-    role: 'administrator',
     profile: {
         fullName: 'Admin 1',
         address1: '',
@@ -45,9 +42,6 @@ mockData.users.set('65fRWpFmA2OVNXlEX4RiRv1LK3v2', {
 
 // Another hardcoded admin user
 mockData.users.set('AwOzAjY3eTdSvG8aXVv8GPQ7Rjv2', {
-    uid: 'AwOzAjY3eTdSvG8aXVv8GPQ7Rjv2',
-    email: 'test@gmail.com',
-    role: 'administrator',
     profile: {
         fullName: 'Admin 2',
         address1: '',
@@ -66,9 +60,6 @@ mockData.users.set('AwOzAjY3eTdSvG8aXVv8GPQ7Rjv2', {
 
 // Hardcoded volunteer user
 mockData.users.set('b9YNzkWjYhVOqAP9b8TlCae0qGF2', {
-    uid: 'b9YNzkWjYhVOqAP9b8TlCae0qGF2',
-    email: 'test2@gmail.com',
-    role: 'volunteer',
     profile: {
         fullName: 'Volunteer 1',
         address1: '',
