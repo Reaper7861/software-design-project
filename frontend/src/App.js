@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import './App.css' // Import App.css for its appearance/styling
+import { AdminRoute } from './components/AdminRoute';
 
 // Import all page components
 import LoginPage from './pages/LoginPage'
@@ -83,11 +84,19 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/events" element={<EventManagementPage />} />
-          <Route path="/matching" element={<MatchPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/phantompage" element={<PhantomPage />} />
+          <Route path="/events" element={
+            <AdminRoute>
+              <EventManagementPage />
+            </AdminRoute>
+          } />
+          <Route path="/matching" element={
+            <AdminRoute>
+              <MatchPage />
+            </AdminRoute>
+            } />
         </Routes>
       </div>
       </ThemeProvider>

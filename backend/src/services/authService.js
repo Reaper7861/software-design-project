@@ -52,35 +52,21 @@ class AuthService {
 
     // Obtain user by Firebase UID
     async getUserByUid(uid){
-        try{
-            const userRecord = await auth.getUser(uid);
-            const userData = getUser(uid);
+        const userData = getUser(uid);
 
             if(!userData){
-                const newUserData = createUser(uid, {
-                    email: userRecord.email, 
-                    fullName: userRecord.displayName || '',
-                    role: 'volunteer'
-                });
+                throw new Error('User not found');
+                }
 
                 return {
-                    uid: userRecord.uid,
-                    email: userRecord.email,
-                    profile: newUserData.profile
+                    uid: userData.uid,
+                    email: userData.email,
+                    role: userData.role,
+                    profile: userData.profile
                 };
             }
-
-            return {
-                uid: userRecord.uid,
-                email: userRecord.email,
-                profile: userData.profile
-            };
-        } catch (error) {
-            console.error('Get user error: ', error);
-            throw new Error('User not found');
-        }
     }
 
-}
+
 
 module.exports = new AuthService();

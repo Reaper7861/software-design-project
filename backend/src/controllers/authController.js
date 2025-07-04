@@ -40,7 +40,9 @@ class AuthController {
 
             res.json({
                 user: {
-                    ...user,
+                    uid: user.uid,
+                    email: user.email,
+                    role: user.role || 'volunteer',
                     profileCompleted: user.profile.profileCompleted || false
                 }
             });

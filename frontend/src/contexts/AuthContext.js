@@ -1,17 +1,32 @@
 // Authentication provider
-// Only a placeholder/simulation right now
+import React, {createContext, useState, useContext} from "react";
+import { useNavigate } from "react-router-dom";
 
-// Pass-through provider
-export const AuthProvider = ({ children }) => {
-    return children;
-};
 
-// Access to authentication state in web app
-export const useAuth = () => {
+// Create context
+export const AuthContext = createContext();
 
-    // Returning hard-coded values for now
-    return {
-        isAuthenticated: false,
-        user: null
+// Provider component
+export const AuthProvider = ({children}) => {
+    const [user, setUser] = useState(null);
+    const navigate = useNavigate();
+
+    const login = (userData) => {
+        setUser(userData);
+    }
+
+    const logout = () => {
+        setUser(null);
+        navigate("/homepage");
     };
+
+    return(
+        <AuthContext.Provider value = {{user, setUser, login, logout}}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
+
+
+// Hook to use context
+export const useAuth = () => useContext(AuthContext);

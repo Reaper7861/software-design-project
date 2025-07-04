@@ -2,6 +2,7 @@ import React, {useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {signInWithEmailAndPassword} from 'firebase/auth';
 import {auth} from '../firebase';
+import {useAuth} from "../contexts/AuthContext";
 
 
 // Form with email and password validation
@@ -24,6 +25,9 @@ const LoginPage = () => {
             [e.target.name]: e.target.value
         });
     };
+
+
+    const {setUser} = useAuth();
 
     // Form submission with basic validation
     const handleSubmit = async (e) => {
@@ -60,11 +64,26 @@ const LoginPage = () => {
             const token = await userCredential.user.getIdToken();
 
             // Send token to backend to get user profile/validate session
-            await fetch('http://localhost:8080/api/users/profile', {
+            const res = await fetch('http://localhost:8080/api/auth/me', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
+
+            if(!res.ok){
+                throw new Error('Failed to fetch user profile');
+            }
+
+            const data = await res.json();
+
+
+            // Store user in context
+            setUser({
+                uid: data.user.uid,
+                email: data.user.email,
+                role: data.user.role
+            });
+
 
             navigate('/profile');
             setLoading(false);
