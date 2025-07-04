@@ -126,12 +126,6 @@ describe("API Endpoints", () => {
         }
       }
     })
-    // Expected success message
-    //expect(res.body).toHaveProperty("message", "User registered successfully");
-    // Expected body has object with uid and email
-    // expect(res.body).toHaveProperty("user");
-    // expect(res.body.user).toHaveProperty("uid");
-    // expect(res.body.user).toHaveProperty("email", newEmail);
   });
 
   // Test: Registering with missing email
