@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Typography, TextField, Paper, List, ListItem, ListItemButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 
-// TO DO //
-/*
-Ability to soft-delete entries
 
-*/
 
 const HistoryPage = () => {
 
@@ -19,55 +15,46 @@ const HistoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Hardcoded volunteer list
-  const volunteerList = [
-    'Jordan Smith',
-    'Ava Chen',
-    'Liam Patel',
-    'Maria Gonzalez'
-  ];
+  const [allHistory, setAllHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const allHistory = [
-    {
-      volunteer: 'Jordan Smith',
-      eventName: 'Community Cleanup',
-      description: 'Neighborhood-wide trash pickup and recycling event.',
-      location: 'Maple Street Park',
-      requiredSkills: 'Teamwork, Physical Stamina',
-      urgency: 'High',
-      date: '2025-06-15',
-      participationStatus: 'Attended'
-    },
-    {
-      volunteer: 'Ava Chen',
-      eventName: 'Food Drive',
-      description: 'Sorting and distributing food items for families in need.',
-      location: 'Central Food Bank',
-      requiredSkills: 'Organization, Communication',
-      urgency: 'Medium',
-      date: '2025-05-30',
-      participationStatus: 'No-show'
-    },
-    {
-      volunteer: 'Jordan Smith',
-      eventName: 'Animal Shelter Support',
-      description: 'Help clean cages and walk dogs at the local shelter.',
-      location: 'Greenwood Shelter',
-      requiredSkills: 'Empathy, Animal Care',
-      urgency: 'Low',
-      date: '2025-05-10',
-      participationStatus: 'Attended'
-    }
-  ];
 
+///call the backend here
+useEffect(() => {
+    fetch('http://localhost:8080/api/volunteer-history') //replace later //
+      .then(res => res.json())
+      .then(data => {
+        setAllHistory(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch history:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  //map the data
+const volunteerList = React.useMemo(() => {
+    return Array.from(new Set(allHistory.map(entry => entry.volunteer)));
+  }, [allHistory]);
+
+  // Filter volunteers based on search input
   const filteredVolunteers = volunteerList.filter(name =>
     name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // If selectedVolunteer no longer exists in list (e.g., after data reload), clear it
+  useEffect(() => {
+    if (selectedVolunteer && !volunteerList.includes(selectedVolunteer)) {
+      setSelectedVolunteer(null);
+      setSearch('');
+    }
+  }, [volunteerList, selectedVolunteer]);
+
+  // Filter history by selected volunteer
   const filteredHistory = selectedVolunteer
     ? allHistory.filter(entry => entry.volunteer === selectedVolunteer)
     : allHistory;
-
 
 
   //sorting history by date
