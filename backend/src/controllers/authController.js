@@ -12,7 +12,7 @@ class AuthController {
 
             res.status(201).json({
                 message: 'User registered successfully',
-                user: result.user
+                user: result
             });
         } catch (error) {
             console.error('Registration controller error: ', error);

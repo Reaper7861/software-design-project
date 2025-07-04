@@ -4,6 +4,8 @@
 
 npm install firebase
 
+npm install axios
+
 <br>
 
 **Frontend:**
