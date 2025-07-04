@@ -3,7 +3,7 @@ import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText
 import SendIcon from '@mui/icons-material/Send';
 
 ///firebase stuff
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { messaging } from '../firebase'; // adjust path to your firebase.js
 import { getToken, onMessage } from "firebase/messaging";
 
@@ -21,8 +21,6 @@ date for message received and message sent are inconsistent
  (June vs 6)
  subject line is mandatory
 */
-
-
 
 const NotificationSystem = () => {
 
@@ -47,45 +45,52 @@ const NotificationSystem = () => {
 
 
   //grab the user token here once the component loads
-  useEffect(() => {
-  const sendFcmTokenToBackend = async () => {
+useEffect(() => {
+  // Listen for auth state changes
+  const unsubscribeAuth = onAuthStateChanged(getAuth(), async (user) => {
+    if (!user) {
+      console.warn('User not logged in - cannot get FCM token');
+      return;
+    }
+
+    // Request Notification permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Notification permission not granted');
+      return;
+    }
+
     try {
+      // Get FCM token using your VAPID key
       const currentToken = await getToken(messaging, {
-        vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k' 
-      ///from Project Settings>Cloud Messaging> Web configuration
-       });
+        vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k',
+      });
 
       if (!currentToken) {
-        console.warn('No FCM token available');
+        console.warn('No FCM token retrieved');
         return;
       }
 
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        console.warn('User not logged in');
-        return;
-      }
-
+      // Get Firebase Auth ID token for backend auth
       const idToken = await user.getIdToken();
 
-      await fetch('/api/save-fcm-token', {
+      // Send FCM token to backend with authorization header
+      await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
+          'Authorization': `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ token: currentToken })
+        body: JSON.stringify({ token: currentToken }),
       });
 
       console.log('✅ FCM token sent to backend');
-    } catch (err) {
-      console.error('❌ Error sending FCM token:', err);
+    } catch (error) {
+      console.error('Error during getToken or sending to backend:', error);
     }
-  };
+  });
 
-  sendFcmTokenToBackend();
+  return () => unsubscribeAuth(); // cleanup listener
 }, []);
 
 
