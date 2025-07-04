@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "firebase": "^11.9.1"
+  },
+  "devDependencies": {
+    "jest": "^30.0.4",
+    "supertest": "^7.1.1"
   }
 }
