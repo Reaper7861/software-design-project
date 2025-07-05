@@ -4,7 +4,7 @@ import SendIcon from '@mui/icons-material/Send';
 
 ///firebase stuff
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { messaging } from '../firebase'; // adjust path to your firebase.js
+import { messaging } from "../firebase";
 import { getToken, onMessage } from "firebase/messaging";
 
 // TO DO //
@@ -21,6 +21,27 @@ date for message received and message sent are inconsistent
  (June vs 6)
  subject line is mandatory
 */
+
+
+ ///grab FCM token for push notifications here
+  
+const getFcmToken = async () => {
+  try {
+    const currentToken = await getToken(messaging , {
+      vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k',
+    });
+    if (currentToken) {
+      console.log('FCM Token:', currentToken);
+      return currentToken;
+    } else {
+      console.log('No registration token available.');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error retrieving token:', error);
+    return null;
+  }
+};
 
 const NotificationSystem = () => {
 
@@ -43,7 +64,7 @@ const NotificationSystem = () => {
   //filters the notifs by type
   const [filterType, setFilterType] = useState('all'); // 'all' | 'sent' | 'received'
 
-
+ 
   //grab the user token here once the component loads
 useEffect(() => {
   // Listen for auth state changes
@@ -62,10 +83,8 @@ useEffect(() => {
 
     try {
       // Get FCM token using your VAPID key
-      const currentToken = await getToken(messaging, {
-        vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k',
-      });
-
+     const currentToken = await getFcmToken();
+     
       if (!currentToken) {
         console.warn('No FCM token retrieved');
         return;
@@ -73,6 +92,8 @@ useEffect(() => {
 
       // Get Firebase Auth ID token for backend auth
       const idToken = await user.getIdToken();
+      console.log('Token: ', idToken)
+
 
       // Send FCM token to backend with authorization header
       await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
@@ -84,7 +105,7 @@ useEffect(() => {
         body: JSON.stringify({ token: currentToken }),
       });
 
-      console.log('✅ FCM token sent to backend');
+      console.log('✅ FCM token sent to backend: ', currentToken);
     } catch (error) {
       console.error('Error during getToken or sending to backend:', error);
     }
