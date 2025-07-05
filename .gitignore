@@ -5,4 +5,3 @@ coverage/
 dist/
 build/
 backend/serviceAccountKey.json
-backend/serviceAccountKey.json
