@@ -11,10 +11,8 @@ import { getToken, onMessage } from "firebase/messaging";
 
 // TO DO //
 /* 
-ability to soft-delete messages
-ability to reply to messages 
 notifications should be received as Assignments, Updates, or Reminders
-
+for event updates, volunteer matching, etc
 */ 
 
 /// *Fix its* ///
@@ -26,7 +24,6 @@ date for message received and message sent are inconsistent
 
 
  ///grab FCM token for push notifications here
-  
 const getFcmToken = async () => {
   try {
     const currentToken = await getToken(messaging , {
@@ -161,16 +158,6 @@ useEffect(() => {
   }
 }, [user]);
 
-
-/***** HARD CODED DATA - DELETE LATER****************************
-    const volunteerList = [
-    { name: 'Jordan Smith', email: 'jordan@example.com' },
-    { name: 'Ava Chen', email: 'ava.chen@example.com' },
-    { name: 'Liam Patel', email: 'liam.patel@example.com' },
-    { name: 'Maria Gonzalez', email: 'maria.g@example.com' }
-  ]; 
-*****************************************************************/
- 
 
 //handles the volunteer searchable dropdown
 const filteredVolunteers = volunteerList.filter(vol =>
@@ -514,7 +501,7 @@ return (
       {/*for the toast notifs to show up */}
       <Snackbar
         open={toastOpen}
-        autoHideDuration={5000}
+        autoHideDuration={10000}
         onClose={() => setToastOpen(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
