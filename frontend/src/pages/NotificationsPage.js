@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText, Divider,  Dialog, DialogTitle, DialogContent, DialogActions, } from '@mui/material';
+import { Box, TextField, Typography, Button, Paper, List, ListItem, 
+  ListItemText, Divider,  Dialog, DialogTitle, DialogContent, 
+  DialogActions, Snackbar, Alert } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+
+///firebase stuff
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { messaging } from "../firebase";
+import { getToken, onMessage } from "firebase/messaging";
 
 // TO DO //
 /* 
-ability to soft-delete messages
-ability to reply to messages 
 notifications should be received as Assignments, Updates, or Reminders
-
+for event updates, volunteer matching, etc
 */ 
 
 /// *Fix its* ///
@@ -18,6 +23,24 @@ date for message received and message sent are inconsistent
 */
 
 
+ ///grab FCM token for push notifications here
+const getFcmToken = async () => {
+  try {
+    const currentToken = await getToken(messaging , {
+      vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k',
+    });
+    if (currentToken) {
+      console.log('FCM Token:', currentToken);
+      return currentToken;
+    } else {
+      console.log('No registration token available.');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error retrieving token:', error);
+    return null;
+  }
+};
 
 const NotificationSystem = () => {
 
@@ -31,6 +54,8 @@ const NotificationSystem = () => {
   //used to search for volunteer name
   const [search, setSearch] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  //saves the volunteers from backend
+  const [volunteerList, setVolunteerList] = useState([]);
 
   //for the dialog to send notif
   const [open, setOpen] = useState(false);
@@ -40,31 +65,142 @@ const NotificationSystem = () => {
   //filters the notifs by type
   const [filterType, setFilterType] = useState('all'); // 'all' | 'sent' | 'received'
 
-  
-/***** HARD CODED DATA - DELETE LATER****************************/
-    const volunteerList = [
-    { name: 'Jordan Smith', email: 'jordan@example.com' },
-    { name: 'Ava Chen', email: 'ava.chen@example.com' },
-    { name: 'Liam Patel', email: 'liam.patel@example.com' },
-    { name: 'Maria Gonzalez', email: 'maria.g@example.com' }
-  ]; 
-/*****************************************************************/
- 
+  //keeps track of the user so that we can send notifs
+  const [user, setUser] = useState(null);
+
+  ///used to display the notification banner
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState({ title: '', body: '' });
+
+  const showToast = (title, body) => {
+    setToastMessage({ title, body });
+    setToastOpen(true);
+  };
+
+
+/******USER AUTHENTICATION *****/
+//grab the user token here once the component loads
+useEffect(() => {
+  // Listen for auth state changes
+  const unsubscribeAuth = onAuthStateChanged(getAuth(), async (user) => {
+    if (!user) {
+      console.warn('User not logged in - cannot get FCM token');
+      return;
+    }
+
+    setUser(user); ///SAVES THE USER HERE!!!!!!!!!!!!
+
+    // Request Notification permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Notification permission not granted');
+      return;
+    }
+
+    try {
+      // Get FCM token using your VAPID key
+     const currentToken = await getFcmToken();
+     
+      if (!currentToken) {
+        console.warn('No FCM token retrieved');
+        return;
+      }
+
+      // Get Firebase Auth ID token for backend auth
+      const idToken = await user.getIdToken();
+      console.log('Token: ', idToken)
+
+
+      // Send FCM token to backend with authorization header
+      await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ token: currentToken }),
+      });
+
+      console.log('✅ FCM token sent to backend: ', currentToken);
+    } catch (error) {
+      console.error('Error during getToken or sending to backend:', error);
+    }
+  });
+
+  return () => unsubscribeAuth(); // cleanup listener
+}, []);
+
+
+/***** NOTIFICATION USER LIST OF VOLUNTEERS+ADMINS *****/
+//grabs all the users from the backend 
+useEffect(() => {
+  const fetchVolunteers = async () => {
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('http://localhost:8080/api/notifications/volunteers', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch volunteers');
+
+      const data = await res.json();
+      console.log('Fetched users:', data);
+      setVolunteerList(data); // Assuming backend returns array of { name, email, uid }
+    } catch (err) {
+      console.error('Error fetching volunteers:', err);
+    }
+  };
+
+  if (user) {
+    fetchVolunteers();
+  }
+}, [user]);
+
 
 //handles the volunteer searchable dropdown
- const filteredVolunteers = volunteerList.filter(vol =>
-    vol.name.toLowerCase().includes(search.toLowerCase())
-  );
-
+const filteredVolunteers = volunteerList.filter(vol =>
+  vol.email  && vol.email.toLowerCase().includes(search.toLowerCase())
+);
   const handleSelectVolunteer = (vol) => {
     setSelectedVolunteer(vol);
-    setSearch(vol.name);
+    setSearch(vol.email);
     setStatus('');
   };
 //
 
 ////SET UP NOTIFICATION HERE ////
-  const sendNotification = () => {
+
+useEffect(() => {
+  const unsubscribe = onMessage(messaging, (payload) => {
+    console.log('Message received in foreground:', payload);
+
+    const title = payload.notification?.title || 'Notification';
+    const body = payload.notification?.body || '';
+
+    showToast(title, body); // shows the toast banner !!!!!!!!!!!!!!!!!!!!!!!
+
+    ///fix later
+    const incoming = {
+      type: 'received',
+      name: payload.notification?.title || 'System',
+      email: 'system@firebase.com',
+      subject: payload.notification?.title || 'No subject',
+      message: payload.notification?.body || '',
+      time: new Date().toLocaleString()
+    };
+
+    setSentNotifications((prev) => [incoming, ...prev]);
+  });
+
+  return () => unsubscribe();
+}, []);
+
+
+///SEND NOTIFICATION HERE //
+
+  const sendNotification = async () => {
      if (!selectedVolunteer) {
       setStatus('Please select a volunteer.');
       return;
@@ -79,30 +215,50 @@ const NotificationSystem = () => {
       setStatus('Please enter a message before sending.');
       return;
     }
-
-    ////the  notification content itself
-    const newNotification = {
-      type: 'sent',
-      name: selectedVolunteer.name,
-      email: selectedVolunteer.email,
-      subject,
-      message,
-      time: new Date().toLocaleString()
-    };
-//////////////////////////////////////
     
+    try {
+      const recipientUid = selectedVolunteer.uid;
+      const idToken = await user.getIdToken();
 
-    // Simulate sending notification
-    ///////////////////////////////// change after implimenting backend
-    console.log(`📢 Sending notification to ${selectedVolunteer.name}: "${message}"`);
-    setStatus(`Notification sent to ${selectedVolunteer.name}`);
-    setMessage('');
-    setSentNotifications([newNotification, ...sentNotifications]);
-    setOpen(false);
-    setSearch('');
-    setSelectedVolunteer(null);
-  };
+      const res = await fetch('http://localhost:8080/api/notifications/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        uid: recipientUid,
+        title: subject,
+        body: message,
+      }),
+    });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to send notification');
+      }
 
+      setStatus(`Notification sent to ${selectedVolunteer.name}`);
+
+      const newNotification = {
+        type: 'sent',
+        name: selectedVolunteer.name,
+        email: selectedVolunteer.email,
+        subject,
+        message,
+        time: new Date().toLocaleString(),
+      };
+      
+      setSentNotifications((prev) => [newNotification, ...prev]);
+
+      //clear everything after sending
+      setMessage('');
+      setOpen(false);
+      setSearch('');
+      setSelectedVolunteer(null);
+
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+  }}; 
 
 
   ////////////FAKE DATA REPLACE LATER//////////////////////////////////
@@ -202,11 +358,10 @@ return (
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </Button>
             ))}
-          </Box>
+          </Box>      
         </Paper>
       </Box>
 
-      
 
       {/* Right: Notification Feed */}
       
@@ -283,7 +438,7 @@ return (
                   filteredVolunteers.map((vol, index) => (
                     <React.Fragment key={index}>
                       <ListItem button onClick={() => handleSelectVolunteer(vol)}>
-                        <ListItemText primary={vol.name} secondary={vol.email} />
+                        <ListItemText primary={vol.email} secondary={vol.email} />
                       </ListItem>
                       <Divider />
                     </React.Fragment>
@@ -299,7 +454,8 @@ return (
 
           {selectedVolunteer && (
             <Typography sx={{ mb: 2 }}>
-              <strong>Selected:</strong> {selectedVolunteer.name} ({selectedVolunteer.email})
+              
+              <strong>Selected:</strong> {selectedVolunteer.email} ({selectedVolunteer.email})
             </Typography>
           )}
 
@@ -335,11 +491,25 @@ return (
 
         <DialogActions>
           <Button color="secondary"onClick={() => setOpen(false)}>Cancel</Button>
-          <Button color="secondary" variant="contained" onClick={sendNotification}>
+          <Button color="secondary" variant="contained" onClick={sendNotification}> 
             Send
           </Button>
         </DialogActions>
       </Dialog>
+
+
+      {/*for the toast notifs to show up */}
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={10000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="info" onClose={() => setToastOpen(false)} sx={{ width: '100%' }}>
+          <strong>{toastMessage.title}</strong><br />
+          {toastMessage.body}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

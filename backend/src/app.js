@@ -7,6 +7,8 @@ require('dotenv').config();
 
 // Import routes
 const authRoutes = require('./routes/authRoutes')
+const volunteerHistoryRoutes = require('./routes/volunteerHistoryRoutes'); 
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Create Express
 const app = express();
@@ -32,7 +34,8 @@ app.get('/', (req, res) => {
             users: '/api/users',
             events: '/api/events',
             matching: '/api/matching',
-            notifications: '/api/notifications'
+            notifications: '/api/notifications',
+            volunteerHistory: '/api/volunteer-history'
         }
     });
 });
@@ -40,6 +43,8 @@ app.get('/', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/volunteer-history', volunteerHistoryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 Handler
 app.use((req, res) => {
