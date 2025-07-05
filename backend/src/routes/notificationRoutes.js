@@ -6,7 +6,7 @@ const { verifyToken } = require('../middleware/auth');
 
 //locally stores the FCM token rather than the DB for now
 const fcmTokens = {
-  '92Gc2Al6jhV74vl1yiMJTd0nu1o2': 'cl3RvjTgPJbUcv9A8qWiAM:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw',
+  '92Gc2Al6jhV74vl1yiMJTd0nu1o2': 'cl3RvjTgPJbUcv9A8qWiAM:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw',
 
 }; 
 
