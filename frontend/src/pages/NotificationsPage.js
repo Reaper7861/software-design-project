@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, Typography, Button, Paper, List, ListItem, ListItemText, Divider,  Dialog, DialogTitle, DialogContent, DialogActions, } from '@mui/material';
+import { Box, TextField, Typography, Button, Paper, List, ListItem, 
+  ListItemText, Divider,  Dialog, DialogTitle, DialogContent, 
+  DialogActions, Snackbar, Alert } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 
 ///firebase stuff
@@ -69,6 +71,15 @@ const NotificationSystem = () => {
   //keeps track of the user so that we can send notifs
   const [user, setUser] = useState(null);
 
+  ///used to display the notification banner
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState({ title: '', body: '' });
+
+  const showToast = (title, body) => {
+    setToastMessage({ title, body });
+    setToastOpen(true);
+  };
+
 
 /******USER AUTHENTICATION *****/
 //grab the user token here once the component loads
@@ -122,7 +133,6 @@ useEffect(() => {
   return () => unsubscribeAuth(); // cleanup listener
 }, []);
 
-///cl3RvjTgPJbUcv9A8qWiAM:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw
 
 /***** NOTIFICATION USER LIST OF VOLUNTEERS+ADMINS *****/
 //grabs all the users from the backend 
@@ -175,12 +185,16 @@ const filteredVolunteers = volunteerList.filter(vol =>
 
 ////SET UP NOTIFICATION HERE ////
 
-
 useEffect(() => {
   const unsubscribe = onMessage(messaging, (payload) => {
     console.log('Message received in foreground:', payload);
 
-    // You can optionally show a toast or insert it into your state
+    const title = payload.notification?.title || 'Notification';
+    const body = payload.notification?.body || '';
+
+    showToast(title, body); // shows the toast banner !!!!!!!!!!!!!!!!!!!!!!!
+
+    ///fix later
     const incoming = {
       type: 'received',
       name: payload.notification?.title || 'System',
@@ -495,6 +509,20 @@ return (
           </Button>
         </DialogActions>
       </Dialog>
+
+
+      {/*for the toast notifs to show up */}
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={5000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="info" onClose={() => setToastOpen(false)} sx={{ width: '100%' }}>
+          <strong>{toastMessage.title}</strong><br />
+          {toastMessage.body}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
