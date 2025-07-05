@@ -54,4 +54,29 @@ router.post('/save-fcm-token', verifyToken, async (req, res) => {
   
 });
 
+//pulls all the users for the volunteer list selection for notification sending
+router.get('/volunteers', async (req, res) => {
+  try {
+    const users = [];
+    let nextPageToken;
+
+    do {
+      const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+      listUsersResult.users.forEach(userRecord => {
+        users.push({
+          uid: userRecord.uid,
+          email: userRecord.email,
+          name: userRecord.displayName || '',
+        });
+      });
+      nextPageToken = listUsersResult.pageToken;
+    } while (nextPageToken);
+
+    res.json(users);
+  } catch (err) {
+    console.error('Error listing users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
 module.exports = router;

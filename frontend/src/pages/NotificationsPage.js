@@ -55,6 +55,8 @@ const NotificationSystem = () => {
   //used to search for volunteer name
   const [search, setSearch] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  //saves the volunteers from backend
+  const [volunteerList, setVolunteerList] = useState([]);
 
   //for the dialog to send notif
   const [open, setOpen] = useState(false);
@@ -64,8 +66,12 @@ const NotificationSystem = () => {
   //filters the notifs by type
   const [filterType, setFilterType] = useState('all'); // 'all' | 'sent' | 'received'
 
- 
-  //grab the user token here once the component loads
+  //keeps track of the user so that we can send notifs
+  const [user, setUser] = useState(null);
+
+
+/******USER AUTHENTICATION *****/
+//grab the user token here once the component loads
 useEffect(() => {
   // Listen for auth state changes
   const unsubscribeAuth = onAuthStateChanged(getAuth(), async (user) => {
@@ -73,6 +79,8 @@ useEffect(() => {
       console.warn('User not logged in - cannot get FCM token');
       return;
     }
+
+    setUser(user); ///SAVES THE USER HERE!!!!!!!!!!!!
 
     // Request Notification permission
     const permission = await Notification.requestPermission();
@@ -115,24 +123,51 @@ useEffect(() => {
 }, []);
 
 
-/***** HARD CODED DATA - DELETE LATER****************************/
+/***** NOTIFICATION USER LIST OF VOLUNTEERS+ADMINS *****/
+//grabs all the users from the backend 
+useEffect(() => {
+  const fetchVolunteers = async () => {
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('http://localhost:8080/api/notifications/volunteers', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch volunteers');
+
+      const data = await res.json();
+      console.log('Fetched users:', data);
+      setVolunteerList(data); // Assuming backend returns array of { name, email, uid }
+    } catch (err) {
+      console.error('Error fetching volunteers:', err);
+    }
+  };
+
+  if (user) {
+    fetchVolunteers();
+  }
+}, [user]);
+
+
+/***** HARD CODED DATA - DELETE LATER****************************
     const volunteerList = [
     { name: 'Jordan Smith', email: 'jordan@example.com' },
     { name: 'Ava Chen', email: 'ava.chen@example.com' },
     { name: 'Liam Patel', email: 'liam.patel@example.com' },
     { name: 'Maria Gonzalez', email: 'maria.g@example.com' }
   ]; 
-/*****************************************************************/
+*****************************************************************/
  
 
 //handles the volunteer searchable dropdown
- const filteredVolunteers = volunteerList.filter(vol =>
-    vol.name.toLowerCase().includes(search.toLowerCase())
-  );
-
+const filteredVolunteers = volunteerList.filter(vol =>
+  vol.email  && vol.email.toLowerCase().includes(search.toLowerCase())
+);
   const handleSelectVolunteer = (vol) => {
     setSelectedVolunteer(vol);
-    setSearch(vol.name);
+    setSearch(vol.email);
     setStatus('');
   };
 //
@@ -178,66 +213,50 @@ useEffect(() => {
       setStatus('Please enter a message before sending.');
       return;
     }
-      try {
-    const res = await fetch('/api/notifications/send', {
+    
+    try {
+      const recipientUid = selectedVolunteer.uid;
+      const idToken = await user.getIdToken();
+
+      const res = await fetch('http://localhost:8080/api/notifications/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
       body: JSON.stringify({
+        uid: recipientUid,
+        title: subject,
+        body: message,
+      }),
+    });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to send notification');
+      }
+
+      setStatus(`Notification sent to ${selectedVolunteer.name}`);
+
+      const newNotification = {
+        type: 'sent',
+        name: selectedVolunteer.name,
         email: selectedVolunteer.email,
         subject,
         message,
-      }),
-    });
+        time: new Date().toLocaleString(),
+      };
+      
+      setSentNotifications((prev) => [newNotification, ...prev]);
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || 'Failed to send notification');
-    }
+      //clear everything after sending
+      setMessage('');
+      setOpen(false);
+      setSearch('');
+      setSelectedVolunteer(null);
 
-    setStatus(`Notification sent to ${selectedVolunteer.name}`);
-    const newNotification = {
-      type: 'sent',
-      name: selectedVolunteer.name,
-      email: selectedVolunteer.email,
-      subject,
-      message,
-      time: new Date().toLocaleString(),
-    };
-    setSentNotifications([newNotification, ...sentNotifications]);
-    setMessage('');
-    setOpen(false);
-    setSearch('');
-    setSelectedVolunteer(null);
-  } catch (error) {
-    setStatus(`Error: ${error.message}`);
-  }
-
-    /*
-    ////the  notification content itself
-    const newNotification = {
-      type: 'sent',
-      name: selectedVolunteer.name,
-      email: selectedVolunteer.email,
-      subject,
-      message,
-      time: new Date().toLocaleString()
-    };
-//////////////////////////////////////
-    
-
-    // Simulate sending notification
-    ///////////////////////////////// change after implimenting backend
-    console.log(`📢 Sending notification to ${selectedVolunteer.name}: "${message}"`);
-    setStatus(`Notification sent to ${selectedVolunteer.name}`);
-    setMessage('');
-    setSentNotifications([newNotification, ...sentNotifications]);
-    setOpen(false);
-    setSearch('');
-    setSelectedVolunteer(null);
-    
-    */
-  };
-
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+  }}; 
 
 
   ////////////FAKE DATA REPLACE LATER//////////////////////////////////
@@ -337,11 +356,10 @@ return (
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </Button>
             ))}
-          </Box>
+          </Box>      
         </Paper>
       </Box>
 
-      
 
       {/* Right: Notification Feed */}
       
@@ -418,7 +436,7 @@ return (
                   filteredVolunteers.map((vol, index) => (
                     <React.Fragment key={index}>
                       <ListItem button onClick={() => handleSelectVolunteer(vol)}>
-                        <ListItemText primary={vol.name} secondary={vol.email} />
+                        <ListItemText primary={vol.email} secondary={vol.email} />
                       </ListItem>
                       <Divider />
                     </React.Fragment>
@@ -434,7 +452,8 @@ return (
 
           {selectedVolunteer && (
             <Typography sx={{ mb: 2 }}>
-              <strong>Selected:</strong> {selectedVolunteer.name} ({selectedVolunteer.email})
+              
+              <strong>Selected:</strong> {selectedVolunteer.email} ({selectedVolunteer.email})
             </Typography>
           )}
 
@@ -470,7 +489,7 @@ return (
 
         <DialogActions>
           <Button color="secondary"onClick={() => setOpen(false)}>Cancel</Button>
-          <Button color="secondary" variant="contained" onClick={sendNotification}>
+          <Button color="secondary" variant="contained" onClick={sendNotification}> 
             Send
           </Button>
         </DialogActions>
