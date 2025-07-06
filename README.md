@@ -3,7 +3,7 @@
 1. Run: `npm install` in root
 2. Run: `npm run setup` in root
 3. Run: `npm run dev` in root <br>
-     **Note:** Might have to run both `npm run setup` and `npm run dev` everytime the web app is run
+     **Note:** Might have to run both `npm run setup` and `npm run dev` every time the web app is run
 
 **Manual Setup**
 1. Run: `npm install` in root
