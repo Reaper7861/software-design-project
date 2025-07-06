@@ -1,6 +1,7 @@
 module.exports = {
   // Simulate Node.js environment
   testEnvironment: 'node',
+  testEnvironmentOptions: {},
   // Output coverage
   coverageDirectory: 'coverage',
   // Collect coverage info from:
