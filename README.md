@@ -2,16 +2,24 @@
 
 **Manual Setup**
 1. Run: `npm install` in root
-2. Terminal 1: Backend: `cd backend && npm install && npm run dev`
-3. Terminal 2: Frontend: `cd frontend && npm install && npm start`
+2. Terminal 1 - Backend: 
+    <br>Mac: `cd backend && npm install && npm run dev`
+    <br>Windows: `cd backend; npm install; npm run dev`
+3. Terminal 2 - Frontend: 
+    <br>Mac: `cd frontend && npm install && npm start`
+    <br>Windows: `cd frontend; npm install; npm start`
 
 **Manual Setup (Alternative)**
 1. Run: `npm install` in root
 2. Run: `npm run setup` in root
-3. Terminal 1: Backend: `cd backend` -> `npm run dev`
-4. Terminal 2: Frontend: `cd frontend` -> `npm start`
+3. Terminal 1 - Backend: `cd backend` -> `npm run dev`
+4. Terminal 2 - Frontend: `cd frontend` -> `npm start`
 
 <br>
+
+`npm install` - Install dependencies 
+<br>`npm run setup` - Install dependencies for both frontend and backend
+<br>`cd backend` -> `npm run test` - Run backend tests (jest)
 
 **Ignore Below** 
 
