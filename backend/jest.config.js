@@ -1,8 +1,6 @@
 module.exports = {
   // Simulate Node.js environment
   testEnvironment: 'node',
-  // Cover env file
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   // Output coverage
   coverageDirectory: 'coverage',
   // Collect coverage info from:
