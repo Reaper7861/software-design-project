@@ -1,4 +1,9 @@
 # Software-Design-Project
+**Quick Setup**
+1. Run: `npm install` in root
+2. Run: `npm run setup` in root
+3. Run: `npm run dev` in root <br>
+     **Note:** Might have to run both `npm run setup` and `npm run dev` everytime the web app is run (Mac only)
 
 **Manual Setup**
 1. Run: `npm install` in root
