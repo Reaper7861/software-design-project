@@ -22,6 +22,61 @@ const mockData = {
 };
 
 
+// Hardcoded admin user
+mockData.users.set('65fRWpFmA2OVNXlEX4RiRv1LK3v2', {
+    profile: {
+        fullName: 'Admin 1',
+        address1: '',
+        address2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        skills: [],
+        preferences: '',
+        availability: {},
+        profileCompleted: false,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+});
+
+// Another hardcoded admin user
+mockData.users.set('AwOzAjY3eTdSvG8aXVv8GPQ7Rjv2', {
+    profile: {
+        fullName: 'Admin 2',
+        address1: '',
+        address2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        skills: [],
+        preferences: '',
+        availability: {},
+        profileCompleted: false,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+});
+
+// Hardcoded volunteer user
+mockData.users.set('b9YNzkWjYhVOqAP9b8TlCae0qGF2', {
+    profile: {
+        fullName: 'Volunteer 1',
+        address1: '',
+        address2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        skills: [],
+        preferences: '',
+        availability: {},
+        profileCompleted: false,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+});
+
+
 // Helper functions for data management
 const dataHelperFunctions = {
     // User helper functions

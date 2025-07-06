@@ -13,7 +13,6 @@ class AuthService {
                 emailVerified: false
             });
             
-
             // Create user profile
             const userProfile = createUser(userRecord.uid, {
                 email,
@@ -28,7 +27,6 @@ class AuthService {
                 availability: {},
                 role: 'volunteer'
             });
-
 
             return {
                 success: true,
@@ -49,38 +47,49 @@ class AuthService {
         }
     }
 
+    // Verify Firebase ID token and return decoded info
+    async verifyFirebaseToken(idToken) {
+        return await auth.verifyIdToken(idToken);
+    }
 
     // Obtain user by Firebase UID
     async getUserByUid(uid){
-        try{
-            const userRecord = await auth.getUser(uid);
-            const userData = getUser(uid);
+        const userData = getUser(uid);
 
+            // If user info not found
             if(!userData){
-                const newUserData = createUser(uid, {
-                    email: userRecord.email, 
-                    fullName: userRecord.displayName || '',
-                    role: 'volunteer'
-                });
+                // Get from Firebase
+                const firebaseUser = await auth.getUser(uid);
 
+                // Default profile
                 return {
-                    uid: userRecord.uid,
-                    email: userRecord.email,
-                    profile: newUserData.profile
+                    uid, 
+                    email: firebaseUser.email || 'unknown@example.com',
+                    role: 'volunteer',
+                    profile: {
+                        fullname: 'Not in mockdata user',
+                        address1: '',
+                        address2: '',
+                        city: '',
+                        state: '',
+                        zipCode: '',
+                        skills: [],
+                        preferences: '',
+                        profileCompleted: false
+                    }
+                };
+                }
+
+                // Other, actual user info
+                return {
+                    uid: userData.uid,
+                    email: userData.email,
+                    role: userData.role,
+                    profile: userData.profile
                 };
             }
-
-            return {
-                uid: userRecord.uid,
-                email: userRecord.email,
-                profile: userData.profile
-            };
-        } catch (error) {
-            console.error('Get user error: ', error);
-            throw new Error('User not found');
-        }
     }
 
-}
+
 
 module.exports = new AuthService();

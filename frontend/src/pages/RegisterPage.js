@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
+import { useAuth } from "../contexts/AuthContext";
 
 
 // Registration form with email, password, and confirm pasword confirmation
 const RegisterPage = () => {
+
+    const { login } = useAuth();
+
     // Form state -> email, password, confirmPassword
     const [formData, setFormData] = useState({
         email: '',
@@ -69,7 +73,7 @@ const RegisterPage = () => {
         }
 
         // Password must consist of uppercase, lowercase, number, and special character
-        const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
 
         // Check if password contains the following
         if(!passRegex.test(formData.password)){
@@ -103,6 +107,14 @@ const RegisterPage = () => {
             });
 
 
+            // Set user context to logged in
+            login({
+                uid: userCredential.user.uid, 
+                email: userCredential.user.email,
+                role: "volunteer"
+            });
+
+            // Navigate to profile
             navigate('/profile');
 
         } catch (err) {

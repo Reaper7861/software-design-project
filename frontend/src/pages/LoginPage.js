@@ -2,6 +2,7 @@ import React, {useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {signInWithEmailAndPassword} from 'firebase/auth';
 import {auth} from '../firebase';
+import {useAuth} from "../contexts/AuthContext";
 
 
 // Form with email and password validation
@@ -24,6 +25,9 @@ const LoginPage = () => {
             [e.target.name]: e.target.value
         });
     };
+
+
+    const {setUser} = useAuth();
 
     // Form submission with basic validation
     const handleSubmit = async (e) => {
@@ -57,14 +61,49 @@ const LoginPage = () => {
 
             // Firebase authentication
             const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-            const token = await userCredential.user.getIdToken();
+            const token = await userCredential.user.getIdToken(true);
 
-            // Send token to backend to get user profile/validate session
-            await fetch('http://localhost:8080/api/users/profile', {
+            // Send token to backend to validate session
+            const loginRes = await fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
+
+            const loginData = await loginRes.json();
+
+            console.log("LOGIN RESPONSE:", loginData);
+
+             if(!loginRes.ok){
+                throw new Error('Failed to fetch user');
+            }
+
+
+            // Send token to backend to get user profile
+            const profileRes = await fetch('http://localhost:8080/api/auth/me', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const profileData = await profileRes.json();
+
+            console.log("PROFILE RESPONSE:", profileData);
+
+            if(!profileRes.ok){
+                throw new Error('Failed to fetch user profile');
+            }
+
+
+            // Store user in context
+            setUser({
+                uid: loginData.uid,
+                email: loginData.email,
+                role: loginData.admin ? "administrator" : "volunteer",
+                profile: profileData.user.profile
+            });
+
 
             navigate('/profile');
             setLoading(false);

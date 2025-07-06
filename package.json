@@ -1,5 +1,17 @@
 {
-  "dependencies": {
-    "firebase": "^11.9.1"
+  "name": "software-design-project", 
+  "version": "1.0.0",
+  "description": "Full-stack application",
+  "scripts": {
+    "setup": "concurrently \"npm run setup:backend\" \"npm run setup:frontend\"",
+    "setup:backend": "cd backend && npm install",
+    "setup:frontend": "cd frontend && npm install", 
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "test": "cd backend && npm test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
   }
 }

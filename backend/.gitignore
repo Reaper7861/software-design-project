@@ -1,7 +1,9 @@
 node_modules/
+*/node_modules
 coverage/
 .DS_Store
 *.log
 dist/
 build/
-backend/serviceAccountKey.json
+serviceAccountKey.json
+.env
