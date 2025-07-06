@@ -1,9 +1,9 @@
 {
-  "dependencies": {
-    "firebase": "^11.9.1"
-  },
-  "devDependencies": {
-    "jest": "^30.0.4",
-    "supertest": "^7.1.1"
+  "name": "software-design-project",
+  "version": "1.0.0",
+  "description": "Full-stack application",
+  "scripts": {
+    "setup": "cd backend && npm install && cd ../frontend && npm install",
+    "test": "cd backend && npm test"
   }
 }
