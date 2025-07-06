@@ -86,7 +86,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/history" element={<HistoryPage />} />
-          <Route path="/phantompage" element={<PhantomPage />} />
+          <Route path="/phantom" element={<PhantomPage />} />
           <Route path="/events" element={
             <AdminRoute>
               <EventManagementPage />
