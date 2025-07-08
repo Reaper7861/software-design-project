@@ -1,272 +1,228 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
+import {
+  Box, Typography, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Paper, Button
+} from '@mui/material';
+import axios from 'axios';
 
 const MatchPage = () => {
-    // Hardcoded volutneers list
-    const [volunteers, setVolunteers] = useState([
-    {
-        uid: "volunteer1",
-        fullName: "Jane Doe",
-        address: "123 Street",
-        city: "Houston",
-        state: "TX",
-        zip: "77000",
-        skills: ["First Aid", "Teamwork"],
-        preferences: "I like to work with a team",
-        availability: ["2025-01-01", "2025-01-02"]
-    },
-    {
-        uid: "volunteer2",
-        fullName: "John Smith",
-        address: "456 Somewhere Avenue",
-        city: "Houston",
-        state: "TX",
-        zip: "77001",
-        skills: ["Event Planning", "Communication"],
-        preferences: "I like to work indoors",
-        availability: ["2025-02-01", "2025-02-02"]
+  const [volunteers, setVolunteers] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [matches, setMatches] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // GET volunteers and matches
+        const volunteerRes = await axios.get('http://localhost:8080/api/matching');
+        setVolunteers(volunteerRes.data.volunteers);
+        setMatches(volunteerRes.data.matches || []);
+
+        // GET events
+        const eventRes = await axios.get('http://localhost:8080/api/events');
+        setEvents(eventRes.data.events.filter((e) => e.status !== 'deleted'));
+      } catch (err) {
+        console.error('Fetch error:', err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+
+  const handleCreateMatch = async () => {
+    if (!selectedVolunteer || !selectedEvent) return;
+
+    try {
+      const res = await axios.post('http://localhost:8080/api/matching', {
+        userId: selectedVolunteer.uid,
+        eventId: selectedEvent.eventId,
+      });
+
+      if (res.data.success) {
+        alert('Match successful!');
+        // Refresh matches after successful match
+        const volunteerRes = await axios.get('http://localhost:8080/api/matching');
+        setMatches(volunteerRes.data.matches || []);
+      } else {
+        alert(res.data.message || 'Match failed');
+      }
+    } catch (err) {
+      alert('Server error during match');
+      console.error(err);
     }
-    ]);
+  };
 
-    // Hardcoded events list
-    const [events, setEvents] = useState([
-    {
-        id: "1",
-        name: "Food Drive",
-        description: "Collect and distribute food",
-        location: "Downtown",
-        requiredSkills: ["Organization", "Teamwork"],
-        urgency: "High",
-        date: "2025-05-05"
-    },
-    {
-        id: "2",
-        name: "Community Cleanup",
-        description: "Cleanup neighborhood",
-        location: "Happy Village Homes",
-        requiredSkills: ["Cleaning", "Teamwork", "Communication"],
-        urgency: "Medium",
-        date: "2025-04-01"
+  const handleRemoveMatch = async (userId, eventId) => {
+    try {
+      const res = await axios.delete('http://localhost:8080/api/matching', {
+        data: { userId, eventId }
+      });
+      if (res.data.success) {
+        alert('Volunteer unmatched successfully!');
+        // Refresh matches after successful unmatch
+        const volunteerRes = await axios.get('http://localhost:8080/api/matching');
+        setMatches(volunteerRes.data.matches || []);
+      } else {
+        alert(res.data.message || 'Unmatch failed');
+      }
+    } catch (err) {
+      alert('Server error during unmatch');
+      console.error(err);
     }
+  };
 
-    ]);
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
+        Volunteer Matching
+      </Typography>
 
-
-    const [selectedVolunteer, setSelectedVolunteer] = useState(null); // for storing seclected volunteer 
-    const [selectedEvent, setSelectedEvent] = useState(null); // for storing selected event 
-    const [matches, setMatches] = useState([]); // for storing matched volunteers with events
-
-
-    // Load matches on page load
-    useEffect(() => {
-        const stored = localStorage.getItem("matches");
-        
-        if(stored) {
-            setMatches(JSON.parse(stored));
-        }
-    }, []); // empty dependency array 
-
-    // Save matches
-    const saveMatches = (updated) => {
-        setMatches(updated);
-        localStorage.setItem("matches", JSON.stringify(updated));
-    };
-
-    // Create new match
-    const handleCreateMatch = () => {
-        if(!selectedVolunteer || !selectedEvent) return;
-
-        // Check if match already exists
-        const exists = matches.some(
-            (m) => 
-                m.volunteer.uid === selectedVolunteer.uid &&
-                m.event.id === selectedEvent.id
-        );
-
-        if(exists) {
-            alert("This volunteer is already assigned to this event.");
-            return;
-        }
-
-
-        const newMatch = {
-            volunteer: selectedVolunteer,
-            event: selectedEvent
-        };
-
-        const updated = [...matches, newMatch];
-        saveMatches(updated);
-
-        // Clear
-        setSelectedVolunteer(null);
-        setSelectedEvent(null);
-    };
-
-
-    // Remove existing match
-    const handleRemoveMatch = (index) => {
-        const updated = matches.filter((_, i) => i !== index);
-        saveMatches(updated);
-    };
-
-
-    // render component UI
-    return (
-        <Box sx = {{p: 3}}>
-            {/* Page title */}
-            <Typography variant = "h5" gutterBottom sx ={{color: "white"}}>
-                Volunteer Matching
-            </Typography>
-
-            {/* Volunter Table */}
-            <Box sx = {{display: "flex", gap: 2, flexWrap: "wrap"}}>
-                <TableContainer component = {Paper} sx = {{flex: "1 1 500px"}}>
-                    <Typography variant = "h6" sx = {{p: 1}}>
-                        Volunteers
-                    </Typography>
-                    <Table>
-                        <TableHead>
-                            {/* Volunteer table headers */}
-                            <TableRow>
-                                <TableCell>Name</TableCell>
-                                <TableCell>Address</TableCell>
-                                <TableCell>City</TableCell>
-                                <TableCell>State</TableCell>
-                                <TableCell>Zip</TableCell>
-                                <TableCell>Skills</TableCell>
-                                <TableCell>Preferences</TableCell>
-                                <TableCell>Availability</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {/* Volunteer rows */}
-                            {volunteers.map((v) => (
-                                <TableRow
-                                key={v.uid}
-                                hover
-                                selected = {selectedVolunteer?.uid === v.uid}
-                                onClick = {() => 
-                                    setSelectedVolunteer(
-                                        selectedVolunteer?.uid === v.uid ? null : v
-                                    )
-                                }
-                                sx = {{
-                                    cursor: "pointer",
-                                    backgroundColor: 
-                                    selectedVolunteer?.uid === v.uid ? "#e0f7fa": "inherit"
-                                }}
-                                >
-                                    <TableCell>{v.fullName}</TableCell>
-                                    <TableCell>{v.address}</TableCell>
-                                    <TableCell>{v.city}</TableCell>
-                                    <TableCell>{v.state}</TableCell>
-                                    <TableCell>{v.zip}</TableCell>
-                                    <TableCell>{v.skills.join(", ")}</TableCell>
-                                    <TableCell>{v.preferences}</TableCell>
-                                    <TableCell>{v.availability.join(", ")}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-
-                {/* Event Table */}
-                <TableContainer component = {Paper} sx = {{flex: "1 1 500px"}}>
-                    <Typography variant = "h6" sx = {{p: 1}}>
-                        Events
-                    </Typography>
-                    <Table>
-                        <TableHead>
-                            {/* Event table headers */}
-                            <TableRow>
-                                <TableCell>Name</TableCell>
-                                <TableCell>Description</TableCell>
-                                <TableCell>Location</TableCell>
-                                <TableCell>Required Skills</TableCell>
-                                <TableCell>Urgency</TableCell>
-                                <TableCell>Date</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {/* Event rows */}
-                            {events.map((e) => (
-                                <TableRow
-                                key = {e.id}
-                                hover
-                                selected = {selectedEvent?.id === e.id}
-                                onClick = {() => 
-                                    setSelectedEvent(selectedEvent?.id === e.id ? null : e)
-                                }
-                                sx = {{
-                                    cursor: "pointer",
-                                    backgroundColor: 
-                                    selectedEvent?.id === e.id ? "#e0f7fa": "inherit"
-                                }}
-                                >
-                                    <TableCell>{e.name}</TableCell>
-                                    <TableCell>{e.description}</TableCell>
-                                    <TableCell>{e.location}</TableCell>
-                                    <TableCell>{e.requiredSkills}</TableCell>
-                                    <TableCell>{e.urgency}</TableCell>
-                                    <TableCell>{e.date}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Box>
-
-            {/* Match button */}
-            <Box sx = {{mt: 2}}>
-                <Button
-                    variant = "contained"
-                    disabled = {!selectedVolunteer || !selectedEvent}
-                    onClick = {handleCreateMatch}
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        {/* Volunteer Table */}
+        <TableContainer component={Paper} sx={{ flex: '1 1 500px' }}>
+          <Typography variant="h6" sx={{ p: 1 }}>
+            Volunteers
+          </Typography>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Address</TableCell>
+                <TableCell>City</TableCell>
+                <TableCell>State</TableCell>
+                <TableCell>Zip</TableCell>
+                <TableCell>Skills</TableCell>
+                <TableCell>Preferences</TableCell>
+                <TableCell>Availability</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {volunteers.map((v) => (
+                <TableRow
+                  key={v.uid}
+                  hover
+                  selected={selectedVolunteer?.uid === v.uid}
+                  onClick={() => setSelectedVolunteer(selectedVolunteer?.uid === v.uid ? null : v)}
+                  sx={{
+                    cursor: 'pointer',
+                    backgroundColor: selectedVolunteer?.uid === v.uid ? '#e0f7fa' : 'inherit',
+                  }}
                 >
-                    Create Match
-                </Button>
-            </Box>
+                  <TableCell>{v.profile?.fullName}</TableCell>
+                  <TableCell>{v.profile?.address1}</TableCell>
+                  <TableCell>{v.profile?.city}</TableCell>
+                  <TableCell>{v.profile?.state}</TableCell>
+                  <TableCell>{v.profile?.zipCode}</TableCell>
+                  <TableCell>{v.profile?.skills?.join(', ')}</TableCell>
+                  <TableCell>{v.profile?.preferences}</TableCell>
+                  <TableCell>{Array.isArray(v.profile?.availability)
+                    ? v.profile.availability.join(', ')
+                    : Object.entries(v.profile?.availability || {})
+                        .filter(([_, available]) => available)
+                        .map(([day]) => day)
+                        .join(', ')
+                  }</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-            {/* Existing Match Tables */}
-            <Box sx = {{mt: 3}}>
-                <Typography variant = "h6" sx = {{color: "white"}}>Existing Matches</Typography>
-                {matches.length === 0 ? (
-                    <Typography>No matches made yet.</Typography>
-                ): (
-                    <TableContainer component = {Paper}>
-                        <Table>
-                            <TableHead>
-                                {/* Matches table headers */}
-                                <TableRow>
-                                    <TableCell>Volunteer</TableCell>
-                                    <TableCell>Event</TableCell>
-                                    <TableCell>Action</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {/* Matches rows */}
-                                {matches.map((m, index) => (
-                                    <TableRow key = {index}>
-                                        <TableCell>{m.volunteer.fullName}</TableCell>
-                                        <TableCell>{m.event.name}</TableCell>
-                                        <TableCell>
-                                            <Button
-                                            color = "error"
-                                            onClick = {() => handleRemoveMatch(index)}
-                                            >
-                                                Remove
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                )}
-            </Box>
-        </Box>
-    );
+        {/* Events Table */}
+        <TableContainer component={Paper} sx={{ flex: '1 1 500px' }}>
+          <Typography variant="h6" sx={{ p: 1 }}>
+            Events
+          </Typography>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Event ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Location</TableCell>
+                <TableCell>Required Skills</TableCell>
+                <TableCell>Urgency</TableCell>
+                <TableCell>Date</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {events.map((e) => (
+                <TableRow
+                  key={e.eventId}
+                  hover
+                  selected={selectedEvent?.eventId === e.eventId}
+                  onClick={() => setSelectedEvent(selectedEvent?.eventId === e.eventId ? null : e)}
+                  sx={{
+                    cursor: 'pointer',
+                    backgroundColor: selectedEvent?.eventId === e.eventId ? '#e0f7fa' : 'inherit',
+                  }}
+                >
+                  <TableCell>{e.eventId}</TableCell>
+                  <TableCell>{e.eventName}</TableCell>
+                  <TableCell>{e.eventDescription}</TableCell>
+                  <TableCell>{e.location}</TableCell>
+                  <TableCell>{Array.isArray(e.requiredSkills) ? e.requiredSkills.join(', ') : e.requiredSkills}</TableCell>
+                  <TableCell>{e.urgency}</TableCell>
+                  <TableCell>{e.eventDate}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+
+      {/* Match button */}
+      <Box sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          onClick={handleCreateMatch}
+          disabled={!selectedVolunteer || !selectedEvent}
+        >
+          Create Match
+        </Button>
+      </Box>
+
+      {/* Existing Matches Table */}
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="h6" sx={{ color: 'white' }}>Existing Matches</Typography>
+        {matches.length === 0 ? (
+          <Typography>No matches made yet.</Typography>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Volunteer</TableCell>
+                  <TableCell>Event</TableCell>
+                  <TableCell>Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {matches.map((m, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{m.user?.profile?.fullName || m.user?.fullName || m.userId}</TableCell>
+                    <TableCell>{m.event?.eventName || m.eventId}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleRemoveMatch(m.userId, m.eventId)}
+                      >
+                        Unmatch
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Box>
+    </Box>
+  );
 };
-
 
 export default MatchPage;
