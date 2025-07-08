@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Paper, List, ListItem, ListItemText, Divider, FormControl, InputLabel, Select, MenuItem, Alert, Checkbox } from '@mui/material';
+import axios from 'axios';
 
 
 // define the event management component for creating, editing, and deleting events
@@ -18,6 +19,7 @@ const EventManagement = () => {
     const [error, setError] = useState('');
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [successMsg, setSuccessMsg] = useState('');
 
 
     // Hardcoded skills and urgency options for the demo
@@ -27,56 +29,21 @@ const EventManagement = () => {
     // Load demo events and merge with localStorage
     // Hardcoded demo events
     useEffect(() => {
-        const demoEvents = [
-            {
-                id: 1,
-                name: 'Community Cleanup',
-                description: 'A neighborhood cleanup event to promote environmental awareness.',
-                location: 'Central Park',
-                skills: ['Teamwork', 'Logistics'],
-                urgency: 'Medium',
-                date: '2025-07-01'
-            },
-            {
-                id: 2,
-                name: 'First Aid Workshop',
-                description: 'Learn basic first aid skills to assist in emergencies.',
-                location: 'Community Center',
-                skills: ['First Aid', 'Communication'],
-                urgency: 'High',
-                date: '2025-07-15'
-            }
-        ];
-
-            //set loading state to true while fetching data
+        const fetchEvents = async () => {
+        try {
             setLoading(true);
-            try {
-                // parse localStorage data or initialize with empty arrays
-                let localDataRaw = localStorage.getItem('appData');
-                let localData;
-                if (localDataRaw) {
-                    try {
-                        localData = JSON.parse(localDataRaw);
-                    } catch (parseError) {
-                        console.error('Invalid JSON in localStorage:', parseError);
-                        localData = { events: [], users: [], matches: [] };
-                    }
-                } else {
-                    localData = { events: [], users: [], matches: [] };
-                }
-                // merge demo events with localStorage events, avoiding duplicates
-                const mergedEvents = [
-                    ...demoEvents,
-                    ...localData.events.filter(le => !demoEvents.some(de => de.id === le.id))
-                ];
-                // update the state with merged events
-                setEvents(mergedEvents);
-                //reset form data for new event creation
-                setLoading(false);
-            } catch (err) {
-                setError('Unexpected error loading data.');
-                setLoading(false);
-            }
+            const res = await axios.get('http://localhost:8080/api/events');
+            const activeEvents = (res.data.events || []).filter(e => e.status !== 'deleted');
+            setEvents(activeEvents);
+            setLoading(false);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to load events from server.');
+            setLoading(false);
+        }
+    };
+
+    fetchEvents();
     }, []); // empty dependency array to run only once on mount
 
     // Handlers for form input changes, submission, editing, and deletion
@@ -99,7 +66,7 @@ const EventManagement = () => {
     };
 
     // Handler for form submission
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         // prevent default form submission behavior
         e.preventDefault();
         // reset error message and set loading state
@@ -145,58 +112,59 @@ const EventManagement = () => {
         }
 
         try {
-            // get localStorage data or initialize with empty arrays
-            const localData = JSON.parse(localStorage.getItem('appData')) || { events: [], users: [], matches: [] };
-            let updatedEvents;
+            const payload = {
+                eventName: formData.name,
+                eventDescription: formData.description,
+                location: formData.location,
+                requiredSkills: formData.skills,
+                urgency: formData.urgency,
+                eventDate: formData.date,
+                createdBy: "65fRWpFmA2OVNXlEX4RiRv1LK3v2" 
+            };
 
             if (formData.id) {
-                // update existing event
-                updatedEvents = localData.events.map(event =>
-                    event.id === formData.id ? { ...formData } : event
+                // Update existing event
+                const res = await axios.put(`http://localhost:8080/api/events/${formData.id}`, payload);
+                setEvents(prev =>
+                    prev.map(e => e.eventId === formData.id ? res.data.event : e)
                 );
             } else {
-                // create new event with a unique ID based on current timestamp
-                const newEvent = {
-                    ...formData,
-                    id: Date.now() // use timestamp as a unique ID
-                };
-                updatedEvents = [...localData.events, newEvent];
+                // Create new event
+                const res = await axios.post('http://localhost:8080/api/events', payload);
+                setEvents(prev => [...prev, res.data.event]);
             }
-            // update localStorage with the new or updated events
-            localData.events = updatedEvents;
-            localStorage.setItem('appData', JSON.stringify(localData));
-            // update the state with the new or updated events
-            setEvents(updatedEvents);
-            // reset form data for new event creation
             setFormData({ id: null, name: '', description: '', location: '', skills: [], urgency: '', date: '' });
-            // reset error message and loading state
-            setLoading(false);
+
+            setSuccessMsg(formData.id ? 'Event updated successfully!' : 'Event created successfully!');
+            setTimeout(() => setSuccessMsg(''), 5000);
         } catch (err) {
-            setError('Failed to save event: ' + err.message);
+            console.error(err);
+            setError('Failed to save event.');
+        } finally {
             setLoading(false);
         }
     };
     // Handle erroes during form submission, editing, and deletion
     const handleEdit = (event) => {
-        // populate the form with the selected event data for editing
-        setFormData(event);
-        // reset error message when editing an event
-        setError('');
+        setFormData({
+        id: event.eventId, // store backend ID in frontend state
+        name: event.eventName,
+        description: event.eventDescription,
+        location: event.location,
+        skills: event.requiredSkills,
+        urgency: event.urgency,
+        date: event.eventDate
+    });
+    setError('');
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (eventId) => {
         try {
-            // load localStorage data or initialize with empty arrays
-            const localData = JSON.parse(localStorage.getItem('appData')) || { events: [], users: [], matches: [] };
-            // filter out the event to be deleted
-            const updatedEvents = localData.events.filter(event => event.id !== id);
-            // update localStorage with the remaining events
-            localData.events = updatedEvents;
-            localStorage.setItem('appData', JSON.stringify(localData));
-            // update the state with the remaining events
-            setEvents(updatedEvents);
+            await axios.delete(`http://localhost:8080/api/events/${eventId}`);
+            setEvents(prev => prev.filter(e => e.eventId !== eventId));
         } catch (err) {
-            setError('Failed to delete event: ' + err.message);
+            console.error(err);
+            setError('Failed to delete event.');
         }
     };
     // Render the event management form and existing events list
@@ -218,6 +186,13 @@ const EventManagement = () => {
             <Typography variant="h5" gutterBottom>
                 Event Management
             </Typography>
+
+            {/* Display success message if any */}
+            {successMsg && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+                {successMsg}
+            </Alert>
+            )}
 
             {/* Display error messages if any */}
             {error && (
@@ -334,7 +309,7 @@ const EventManagement = () => {
                 <Paper sx={{ maxHeight: 300, overflowY: 'auto' }}>
                     <List dense>
                         {events.map((event, index) => (
-                            <React.Fragment key={event.id}>
+                            <React.Fragment key={event.eventId}>
                                 {/* ListItem for each event with edit and delete actions */}
                                 <ListItem
                                     secondaryAction={
@@ -354,7 +329,7 @@ const EventManagement = () => {
                                                 variant="outlined"
                                                 color="error"
                                                 size="small"
-                                                onClick={() => handleDelete(event.id)}
+                                                onClick={() => handleDelete(event.eventId)}
                                             >
                                                 Delete
                                             </Button>
@@ -362,8 +337,8 @@ const EventManagement = () => {
                                     }
                                 >
                                     <ListItemText
-                                        primary={event.name}
-                                        secondary={`Date: ${event.date} | Skills: ${event.skills.join(', ')}`}
+                                        primary={event.eventName}
+                                        secondary={`Date: ${event.eventDate} | Skills: ${event.requiredSkills.join(', ')}`}
                                     />
                                 </ListItem>
                                 {/* Divider between events */}
