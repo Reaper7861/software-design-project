@@ -66,21 +66,20 @@ npm run dev
 
 **Database**
 
-<br>
-1. `sudo su - postgres`
+  
+`sudo su - postgres`
 <br>Start: `/Library/PostgreSQL/17/data start`
 <br>Stop: `/Library/PostgreSQL/17/data stop`
 <br>Restart: `/Library/PostgreSQL/17/data restart`
 <br>Server Status: `/Library/PostgreSQL/17/bin/pg_ctl -D /Library/PostgreSQL/17/data status`<br>
 
-<br>
-1. `/Library/PostgreSQL/17/bin/psql`
-<br>
+  
+1. `/Library/PostgreSQL/17/bin/psql`  
 List Databases: `\l`
 <br>Connect to DB: `\c your_db_name`
 <br>List all Tables: `\dt`
 Describe Table Columns: `\d tablename`
-<br>
+  
 2. Exit Shell: `\q`
 
 
