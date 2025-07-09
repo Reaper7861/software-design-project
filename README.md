@@ -25,6 +25,7 @@
 `npm install` - Install dependencies 
 <br>`npm run setup` - Install dependencies for both frontend and backend
 <br>`cd backend` -> `npm run test` - Run backend tests (jest)
+<br>`cd backend` -> `coverage/lcov-report/index.html` (Code Coverage HTML)
 
 <br> 
 
