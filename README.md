@@ -68,14 +68,12 @@ npm run dev
 
 <br>
 1. `sudo su - postgres`
-<br>
 <br>Start: `/Library/PostgreSQL/17/data start`
 <br>Stop: `/Library/PostgreSQL/17/data stop`
 <br>Restart: `/Library/PostgreSQL/17/data restart`
-Server Status: `/Library/PostgreSQL/17/bin/pg_ctl -D /Library/PostgreSQL/17/data status`
+<br>Server Status: `/Library/PostgreSQL/17/bin/pg_ctl -D /Library/PostgreSQL/17/data status`<br>
 
 <br>
-
 1. `/Library/PostgreSQL/17/bin/psql`
 <br>
 List Databases: `\l`
