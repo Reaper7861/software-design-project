@@ -26,6 +26,8 @@
 <br>`npm run setup` - Install dependencies for both frontend and backend
 <br>`cd backend` -> `npm run test` - Run backend tests (jest)
 
+<br> 
+
 **Ignore Below** 
 
 <br> 
@@ -59,5 +61,29 @@ npm start
 cd backend
 
 npm run dev
+
+<br> 
+
+**Database**
+
+<br>
+1. `sudo su - postgres`
+<br>
+Start: `/Library/PostgreSQL/17/data start`
+Stop: `/Library/PostgreSQL/17/data stop`
+Restart: `/Library/PostgreSQL/17/data restart`
+Server Status: `/Library/PostgreSQL/17/bin/pg_ctl -D /Library/PostgreSQL/17/data status`
+
+<br>
+
+1. `/Library/PostgreSQL/17/bin/psql`
+<br>
+List Databases: `\l`
+Connect to DB: `\c your_db_name`
+List all Tables: `\dt`
+Describe Table Columns: `\d tablename`
+<br>
+2. Exit Shell: `\q`
+
 
 
