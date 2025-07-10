@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { auth } from '../firebase';
 
 const PhantomPage = () => {
 
@@ -103,102 +103,95 @@ const PhantomPage = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-
-        //no whitespace for name
+      
+        // Validate form
         if (!formData.fullName.trim()) {
-            setError('Full Name is required.');
-            setLoading(false);
-            return;
-          }
-          
-          //name max characters
-          if (formData.fullName.length > 50) {
-            setError('Full Name cannot exceed 50 characters.');
-            setLoading(false);
-            return;
-          }
-
-          //no whitespace for address
-          if (!formData.address1.trim()) {
-            setError('Address is required.');
-            setLoading(false);
-            return;
-          }
-          
-          //address max length
-          if (formData.address1.length > 100) {
-            setError('Address cannot exceed 100 characters.');
-            setLoading(false);
-            return;
-          }
-
-          //address max length
-          if (formData.address2.length > 100) {
-            setError('Address cannot exceed 100 characters.');
-            setLoading(false);
-            return;
-          }
-
-          //city max length
-          if (formData.city.length > 100) {
-            setError('City cannot exceed 100 characters.');
-            setLoading(false);
-            return;
-          }
-
-        //no whitespace for city
-          if (!formData.city.trim()) {
-            setError('City is required.');
-            setLoading(false);
-            return;
-          }
-
-        //no null for state 
+          setError('Full Name is required.');
+          setLoading(false);
+          return;
+        }
+        if (formData.fullName.length > 50) {
+          setError('Full Name cannot exceed 50 characters.');
+          setLoading(false);
+          return;
+        }
+        if (!formData.address1.trim()) {
+          setError('Address is required.');
+          setLoading(false);
+          return;
+        }
+        if (formData.address1.length > 100 || formData.address2.length > 100) {
+          setError('Address fields cannot exceed 100 characters.');
+          setLoading(false);
+          return;
+        }
+        if (!formData.city.trim()) {
+          setError('City is required.');
+          setLoading(false);
+          return;
+        }
+        if (formData.city.length > 100) {
+          setError('City cannot exceed 100 characters.');
+          setLoading(false);
+          return;
+        }
         if (!formData.state) {
-            setError('Please select your state');
-            setLoading(false);
-            return;
+          setError('Please select your state');
+          setLoading(false);
+          return;
         }
-
-        //must meet format given for zip
         if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
-            setError('Zip Code must be 5 digits or 5+4 format (e.g. 12345 or 12345-6789)');
-            setLoading(false);
-            return;
+          setError('Zip Code must be 5 digits or 5+4 format (e.g. 12345 or 12345-6789)');
+          setLoading(false);
+          return;
         }
-
-        //no null for skills
         if (formData.skills.length === 0) {
-            setError('Please select at least one skill');
-            setLoading(false);
-            return;
+          setError('Please select at least one skill');
+          setLoading(false);
+          return;
         }
-
-        //no null for availability
         if (formData.availability.length === 0) {
-            setError('Please select at least one availability date.');
+          setError('Please select at least one availability date.');
+          setLoading(false);
+          return;
+        }
+      
+        // Attempt to submit to backend
+        try {
+          const user = auth.currentUser;
+          if (!user) {
+            setError('User not logged in');
             setLoading(false);
             return;
           }
-          
-
-        //attempt to update
-        try{
-            console.log('Attempgin Update. Please Wait', formData);
-
-            setTimeout(() => {
-                navigate('/events');
-                setLoading(false);
-            }, 1000);
-        
+      
+          const idToken = await user.getIdToken();
+      
+          const res = await fetch('http://localhost:8080/api/users/create-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify(formData),
+          });
+      
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to save profile');
+          }
+      
+          const updatedProfile = await res.json();
+          console.log('Profile updated:', updatedProfile);
+      
+          navigate('/events');
         } catch (err) {
-            setError('Update failed. Please try again.');
-            setLoading(false);
+          console.error('Profile update failed:', err);
+          setError(err.message || 'Update failed. Please try again.');
+        } finally {
+          setLoading(false);
         }
-
-
-        
-    };
+      };
 
     
     // actual text format 
