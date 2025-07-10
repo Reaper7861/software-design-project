@@ -27,7 +27,7 @@ const LoginPage = () => {
     };
 
 
-    const {setUser} = useAuth();
+    const {login} = useAuth();
 
     // Form submission with basic validation
     const handleSubmit = async (e) => {
@@ -96,8 +96,8 @@ const LoginPage = () => {
             }
 
 
-            // Store user in context
-            setUser({
+            // Store user in context and localStorage
+            login({
                 uid: loginData.uid,
                 email: loginData.email,
                 role: loginData.admin ? "administrator" : "volunteer",
