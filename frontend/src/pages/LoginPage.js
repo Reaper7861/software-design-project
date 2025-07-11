@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {signInWithEmailAndPassword} from 'firebase/auth';
 import {auth} from '../firebase';
 import {useAuth} from "../contexts/AuthContext";
-
+import { getFcmToken } from '../utils/notifications'; //for the FCM token
 
 // Form with email and password validation
 const LoginPage = () => {
@@ -103,6 +103,24 @@ const LoginPage = () => {
                 role: loginData.admin ? "administrator" : "volunteer",
                 profile: profileData.user.profile
             });
+
+        //** Get FCM token here ! and send it to backend **//
+        const fcmToken = await getFcmToken();
+
+        if (fcmToken) {
+            await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ token: fcmToken })
+            });
+            console.log('FCM token sent after login', fcmToken);
+        } else {
+            console.warn('No FCM token retrieved after login');
+        }
+        /** End notification stuff **/
 
 
             navigate('/profile');
