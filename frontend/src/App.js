@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import './App.css' // Import App.css for its appearance/styling
 import { AdminRoute } from './components/AdminRoute';
+import { PrivateRoute } from './components/PrivateRoute';
 
 // Import all page components
 import LoginPage from './pages/LoginPage'
@@ -83,9 +84,21 @@ function App() {
           <Route path="/homepage" element={<Homepage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/profile" element={
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
+          } />
+          <Route path="/notifications" element={
+            <PrivateRoute>
+              <NotificationsPage />
+            </PrivateRoute>
+          } />
+          <Route path="/history" element={
+            <PrivateRoute>
+              <HistoryPage />
+            </PrivateRoute>
+          } />
           <Route path="/phantompage" element={<PhantomPage />} />
           <Route path="/events" element={
             <AdminRoute>

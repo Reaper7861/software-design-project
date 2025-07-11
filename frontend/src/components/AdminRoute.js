@@ -1,13 +1,17 @@
 import {useAuth} from "../contexts/AuthContext";
 import {Navigate} from "react-router-dom";
 
-
-// Allow adminstrators access 
+// Allow administrators access 
 export const AdminRoute = ({children}) => {
-    // Get logged-in user
-    const {user} = useAuth();
+    // Get logged-in user and loading state
+    const {user, loading} = useAuth();
 
-    // If not logged, redirect to login page
+    // Wait for loading to finish before making a decision
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    // If not logged in, redirect to login page
     if(!user){
         return <Navigate to = "/login" replace/>;
     }

@@ -62,19 +62,45 @@ mockData.users.set('AwOzAjY3eTdSvG8aXVv8GPQ7Rjv2', {
 mockData.users.set('b9YNzkWjYhVOqAP9b8TlCae0qGF2', {
     profile: {
         fullName: 'Volunteer 1',
-        address1: '',
+        address1: '123 Main Street',
         address2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        skills: [],
-        preferences: '',
-        availability: {},
-        profileCompleted: false,
+        city: 'Houston',
+        state: 'TX',
+        zipCode: '77000',
+        skills: ['Teamwork', 'Communication'],
+        preferences: 'Work Outdoors',
+        availability: [
+            '2025-07-20',
+            '2025-07-22',
+            '2025-07-25'
+        ],
+        profileCompleted: true,
     },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
 });
+
+
+// Hardcoded event
+const staticEventId = 'event_101';
+mockData.events.set(staticEventId, {
+  eventId: staticEventId,
+  eventName: 'Food Drive',
+  eventDescription: 'Distribute food',
+  eventDate: '2025-07-20',
+  location: 'Houston, TX',
+  requiredSkills: ['Teamwork', 'Communication'],
+  urgency: 'High',
+  createdBy: '65fRWpFmA2OVNXlEX4RiRv1LK3v2',
+  registeredVolunteers: [],
+  status: 'active',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+
+
+// Initialize eventRegistrations
+mockData.eventRegistrations.set(staticEventId, new Set());
 
 
 // Helper functions for data management
@@ -202,6 +228,16 @@ const dataHelperFunctions = {
         return true;
     },
 
+    // Delete event helper functions
+    deleteEvent: (eventId) => {
+        if (mockData.events.has(eventId)) {
+            mockData.events.delete(eventId);
+            mockData.eventRegistrations.delete(eventId); 
+            return true;
+        }
+        return false;
+    },
+
     getEventRegistrations: (eventId) => {
         const registrations = mockData.eventRegistrations.get(eventId);
         return registrations ? Array.from(registrations): [];
@@ -274,6 +310,49 @@ const dataHelperFunctions = {
 
         // Sorting by matching score (descending order)
         return matches.sort((a, b) => b.matchingScore - a.matchingScore);
+    },
+
+    // Store volunteer-event match
+    assignVolunteerToEvent: (userId, eventId) => {
+        if (!mockData.users.has(userId) || !mockData.events.has(eventId)) {
+            return null;
+        }
+
+        if (!mockData.eventRegistrations.has(eventId)) {
+            mockData.eventRegistrations.set(eventId, new Set());
+        }
+
+        mockData.eventRegistrations.get(eventId).add(userId);
+
+        return {
+            userId,
+            eventId,
+            event: mockData.events.get(eventId)
+        };
+    },
+
+    // Get all matched volunteers for an event
+    getEventMatches: (eventId) => {
+        const matched = mockData.eventRegistrations.get(eventId);
+        if (!matched) return [];
+        return Array.from(matched).map(userId => ({
+            userId,
+            user: mockData.users.get(userId)
+        }));
+    },
+
+    // Unmatch volunteer
+    unmatchVolunteerFromEvent: (userId, eventId) => {
+        if (
+            !mockData.users.has(userId) ||
+            !mockData.events.has(eventId)
+        ) return false;
+
+        const registrationSet = mockData.eventRegistrations.get(eventId);
+        if (!registrationSet) return false;
+
+        registrationSet.delete(userId);
+        return true;
     },
 
 
