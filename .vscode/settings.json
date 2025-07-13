@@ -1,3 +1,4 @@
 {
-  "jest.rootPath": "backend"
+  "jest.rootPath": "backend",
+  "liveServer.settings.port": 5501
 }

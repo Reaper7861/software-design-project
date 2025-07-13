@@ -2,27 +2,21 @@ const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
 const { verifyToken } = require('../middleware/auth');
-
-
-//locally stores the FCM token rather than the DB for now
-const fcmTokens = {
-  '92Gc2Al6jhV74vl1yiMJTd0nu1o2': 'cl3RvjTgPJbUcv9A8qWiAM:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw',
-
-}; 
+const { fcmTokens } = require('../utils/fcmTokenStore');
 
 
 // POST /api/notifications/send
-router.post('/send', async (req, res) => {
-  const { uid, title, body } = req.body;
+router.post('/send', verifyToken, async (req, res) => {
+  const { toUid, title, body } = req.body;
+  const fromUid = req.user.uid;  // From the verified token middleware
 
-  if (!uid || !title || !body) {
-    return res.status(400).json({ error: 'Missing token, title, or body' });
+  if (!toUid || !title || !body) {
+    return res.status(400).json({ error: 'Missing recipient uid, title, or body' });
   }
 
-  const token = fcmTokens[uid];
-
-   if (!token) {
-    return res.status(404).json({ error: `No FCM token found for uid: ${uid}` });
+  const token = fcmTokens[toUid];
+  if (!token) {
+    return res.status(404).json({ error: `No FCM token found for uid: ${toUid}` });
   }
 
   const message = {
@@ -32,7 +26,10 @@ router.post('/send', async (req, res) => {
 
   try {
     const response = await admin.messaging().send(message);
-    res.json({ success: true, response });
+
+    // Optional: store sender/recipient info in DB or logs here
+
+    res.json({ success: true, response, fromUid, toUid });
   } catch (error) {
     console.error('Error sending notification:', error);
     res.status(500).json({ error: error.message });
