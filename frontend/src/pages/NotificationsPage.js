@@ -168,7 +168,7 @@ useEffect(() => {
         'Authorization': `Bearer ${idToken}`,
       },
       body: JSON.stringify({
-        toUid: recipientUid, //receiver uid
+        uid: recipientUid,
         title: subject,
         body: message,
       }),
