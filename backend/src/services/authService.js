@@ -24,7 +24,7 @@ class AuthService {
                 zipCode: '',
                 skills: [],
                 preferences: '',
-                availability: {},
+                availability: [],
                 role: 'volunteer'
             });
 
