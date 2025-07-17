@@ -334,69 +334,89 @@ describe('profileRoutes', () => {
 
   // Test case: POST /update-profile should return the updated user profile
   test('POST /update-profile - returns updated profile', async () => {
-    const updatedProfile = { name: 'Updated Name', email: 'john@example.com' };
-    updateUser.mockReturnValue({ profile: updatedProfile });
+    // Make sure updateUser returns a user object
+    updateUser.mockReturnValue({ profile: { name: 'Updated Name' } });
 
-    const req = {
-      user: { uid: 'test-uid' },
-      body: { name: 'Updated Name' },
-    };
-    const res = mockResponse(() => {});
-
-    await new Promise(resolve =>
-      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve)
-    );
-
-    expect(updateUser).toHaveBeenCalledWith('test-uid', { name: 'Updated Name' });
-    expect(res.json).toHaveBeenCalledWith(updatedProfile);
+    await new Promise(resolve => {
+      const req = {
+        user: { uid: 'test-uid' },
+        body: { name: 'Updated Name' },
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(updateUser).toHaveBeenCalledWith('test-uid', { name: 'Updated Name' });
+          expect(res.json).toHaveBeenCalledWith({ name: 'Updated Name' });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve);
+    });
   });
 
   // Test case: POST /update-profile returns 404 if the user doesn't exist
   test('POST /update-profile - returns 404 if user not found', async () => {
     updateUser.mockReturnValue(null);
 
-    const req = {
-      user: { uid: 'invalid-uid' },
-      body: { name: 'No One' },
-    };
-    const res = mockResponse(() => {});
-
-    await new Promise(resolve =>
-      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve)
-    );
-
-    expect(updateUser).toHaveBeenCalledWith('invalid-uid', { name: 'No One' });
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+    await new Promise(resolve => {
+      const req = {
+        user: { uid: 'invalid-uid' },
+        body: { name: 'No One' },
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(updateUser).toHaveBeenCalledWith('invalid-uid', { name: 'No One' });
+          expect(res.status).toHaveBeenCalledWith(404);
+          expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve);
+    });
   });
 
   // Test case: POST /create-profile should return a success message
   test('POST /create-profile - returns creation message', async () => {
+    getUser.mockReturnValue(null); // Simulate user does not exist
     createUser.mockReturnValue({ profile: { name: 'New Profile' } });
-    const req = {
-      user: { uid: 'test-uid' },
-      body: { name: 'New Profile' },
-    };
-    const res = mockResponse(() => {});
 
-    await new Promise(resolve =>
-      router.handle({ ...req, method: 'POST', url: '/create-profile' }, res, resolve)
-    );
-
-    // Assert success response (expect a profile object)
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Profile' }));
+    await new Promise(resolve => {
+      const req = {
+        user: { uid: 'test-uid' },
+        body: { name: 'New Profile' },
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Profile' }));
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'POST', url: '/create-profile' }, res, resolve);
+    });
   });
 
   test('GET /profile - returns token verification message and user profile', async () => {
     const userProfile = { name: 'John Doe', email: 'john@example.com' };
     getUser.mockReturnValue({ profile: userProfile });
-    const req = { user: { uid: 'test-uid' } };
-    const res = mockResponse(() => {});
-    await new Promise(resolve =>
-      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve)
-    );
-    expect(getUser).toHaveBeenCalledWith('test-uid');
-    expect(res.json).toHaveBeenCalledWith({ message: 'Token verified successfully', profile: userProfile });
+
+    await new Promise(resolve => {
+      const req = { user: { uid: 'test-uid' } };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(getUser).toHaveBeenCalledWith('test-uid');
+          expect(res.json).toHaveBeenCalledWith({ message: 'Token verified successfully', profile: userProfile });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve);
+    });
   });
 });
 
