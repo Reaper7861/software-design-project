@@ -454,3 +454,190 @@ describe("Volunteer History Route", () => {
     );
   });
 });
+
+
+
+  // ** Volunteer Matching Testing here  ** //
+
+  describe("Volunteer Matching Routes", () => {
+    // Helper function to set up volunteer profile
+    async function setupVolunteerProfile(userId, skills) {
+    const profileData = {
+      fullName: "Test Volunteer",
+      address1: "123 Test St",
+      city: "Test City",
+      state: "TX",
+      zipCode: "12345",
+      skills: skills || ["Teamwork"],
+      availability: ["2025-08-08"] // adjust based on your format
+    };
+
+    const res = await request(app)
+      .put(`/api/users/${userId}`)
+      .set("Authorization", `Bearer ${adminIdToken}`)
+      .send(profileData);
+
+    console.log("Profile update response:", res.body); // log for debugging
+    return res;
+  }
+
+    it("should match a volunteer to an event", async () => {
+      const createEventRes = await request(app)
+        .post("/api/events")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({
+          eventName: "Matching Event",
+          eventDate: "2025-08-06",
+          location: "Austin, TX",
+          requiredSkills: ["Teamwork"],
+          urgency: "Medium",
+        });
+
+      expect(createEventRes.statusCode).toBe(201);
+      expect(createEventRes.body).toHaveProperty("success", true);
+      expect(createEventRes.body.event).toHaveProperty("eventId");
+
+      const eventId = createEventRes.body.event.eventId;
+
+      //  Use hardcoded volunteer "test2@gmail.com" 
+      const userId = (await auth.getUserByEmail("test2@gmail.com")).uid;
+
+      const res = await request(app)
+        .post("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId }); // updated to use userId
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body.match).toMatchObject({
+        userId: userId, // updated to use userId
+        eventId: eventId,
+      });
+    });
+
+    it("should retrieve all matches", async () => {
+      const createEventRes = await request(app)
+        .post("/api/events")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({
+          eventName: "Match Event",
+          eventDate: "2025-08-07",
+          location: "Houston, TX",
+          requiredSkills: ["Communication"],
+          urgency: "High",
+        });
+
+      expect(createEventRes.statusCode).toBe(201);
+      expect(createEventRes.body).toHaveProperty("success", true);
+      expect(createEventRes.body.event).toHaveProperty("eventId");
+
+      const eventId = createEventRes.body.event.eventId;
+
+      // Use hardcoded volunteer "test2@gmail.com" instead of dynamic volunteerEmail
+      const userId = (await auth.getUserByEmail("test2@gmail.com")).uid;
+
+      const matchRes = await request(app)
+        .post("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId }); // Updated to use userId
+
+      expect(matchRes.statusCode).toBe(201);
+
+      const res = await request(app)
+        .get("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty("success", true);
+      expect(Array.isArray(res.body.matches)).toBe(true);
+      expect(res.body.matches.length).toBeGreaterThan(0);
+    });
+
+    //----------------------------retrieving events work with ID------------------------------------
+
+  it("should retrieve a single event by ID", async () => {
+      // Create an event and get its ID
+      const createRes = await request(app)
+        .post("/api/events")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({
+          eventName: "Single Event",
+          eventDate: "2025-08-03",
+          location: "Dallas, TX",
+          requiredSkills: ["Teamwork"],
+          urgency: "Low",
+        });
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body).toHaveProperty("success", true);
+      expect(createRes.body.event).toHaveProperty("eventId");
+
+      const eventId = createRes.body.event.eventId;
+
+      // Send GET request to fetch the specific event
+      const res = await request(app)
+        .get(`/api/events/${eventId}`)
+        .set("Authorization", `Bearer ${adminIdToken}`);
+
+      // Check if retrieval was successful (200 OK)
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body.event).toMatchObject({
+        eventId: eventId,
+        eventName: "Single Event",
+      }); // Verify the event matches the created one
+    });
+    //----------------------------------------------------------------
+
+
+
+    it("should unmatch a volunteer from an event", async () => {
+      const createEventRes = await request(app)
+        .post("/api/events")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({
+          eventName: "Unmatch Event",
+          eventDate: "2025-08-09",
+          location: "San Antonio, TX",
+          requiredSkills: ["Leadership"],
+          urgency: "Medium",
+        });
+
+      expect(createEventRes.statusCode).toBe(201);
+      expect(createEventRes.body).toHaveProperty("success", true);
+      expect(createEventRes.body.event).toHaveProperty("eventId");
+
+      const eventId = createEventRes.body.event.eventId;
+
+      //  Use hardcoded volunteer "test2@gmail.com" instead of dynamic volunteerEmail
+
+      const userId = (await auth.getUserByEmail("test2@gmail.com")).uid;
+
+      const matchRes = await request(app)
+        .post("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId }); // Updated to use userId
+
+      expect(matchRes.statusCode).toBe(201);
+
+      const res = await request(app)
+        .delete("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId }); // Updated to use userId
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("message", "Volunteer unmatched from event");
+    });
+
+    it("should return 400 for invalid user or event ID", async () => {
+      const res = await request(app)
+        .post("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: "invalid_user", eventId: "invalid_event" });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Invalid user or event ID");
+    });
+  });
