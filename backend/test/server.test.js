@@ -12,6 +12,10 @@ const admin = require("firebase-admin");
 const axios = require("axios");
 // mock FCM tokens
 const { fcmTokens } = require('../src/utils/fcmTokenStore');
+// MockData for helper functions
+const { getUser, updateUser } = require('../src/data/mockData');
+// Router from userRoutes
+const router = require('../src/routes/userRoutes');
 
 
 // Initialize Firebase Admin SDK
@@ -243,6 +247,176 @@ describe("API Endpoints", () => {
     expect(res.body).toHaveProperty("uid");
     expect(res.body).toHaveProperty("email");
     expect(res.body).toHaveProperty("admin", true);
+  });
+});
+
+
+
+
+// UserRoute Unit testing -------------------------------------------------------------------------------------------------------------------------------------------
+
+describe('profileRoutes', () => {
+  beforeAll(() => {
+    jest.resetModules();
+  });
+
+  // Mock data and middleware modules inside the describe block for isolation
+  jest.mock('../src/data/mockData', () => ({
+    getUser: jest.fn(),
+    updateUser: jest.fn(),
+    createUser: jest.fn(),
+  }));
+  jest.mock('../src/middleware/auth', () => ({
+    verifyToken: (req, res, next) => {
+      req.user = req.user || { uid: 'test-uid' };
+      next();
+    },
+  }));
+
+  // Re-import after mocking
+  const { getUser, updateUser, createUser } = require('../src/data/mockData');
+  const router = require('../src/routes/userRoutes');
+
+  // Helper to create mock request and response
+  const mockResponse = (resolve) => {
+    const res = {};
+    res.status = jest.fn().mockReturnValue(res);
+    res.json = jest.fn().mockImplementation(() => { resolve(); return res; });
+    return res;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Test case: GET /profile should return the user profile if the user exists
+  test('GET /profile - returns profile if user exists', async () => {
+    const userProfile = { name: 'John Doe', email: 'john@example.com' };
+    getUser.mockReturnValue({ profile: userProfile });
+
+    await new Promise(resolve => {
+      const req = { user: { uid: 'test-uid' } };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(getUser).toHaveBeenCalledWith('test-uid');
+          expect(res.json).toHaveBeenCalledWith({
+            message: 'Token verified successfully',
+            profile: userProfile
+          });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve);
+    });
+  });
+
+  // Test case: GET /profile should return 404 if the user is not found
+  test('GET /profile - returns 404 if user not found', async () => {
+    getUser.mockReturnValue(null);
+
+    await new Promise(resolve => {
+      const req = { user: { uid: 'missing-uid' } };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(getUser).toHaveBeenCalledWith('missing-uid');
+          expect(res.status).toHaveBeenCalledWith(404);
+          expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve);
+    });
+  });
+
+  // Test case: POST /update-profile should return the updated user profile
+  test('POST /update-profile - returns updated profile', async () => {
+    // Make sure updateUser returns a user object
+    updateUser.mockReturnValue({ profile: { name: 'Updated Name' } });
+
+    await new Promise(resolve => {
+      const req = {
+        user: { uid: 'test-uid' },
+        body: { name: 'Updated Name' },
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(updateUser).toHaveBeenCalledWith('test-uid', { name: 'Updated Name' });
+          expect(res.json).toHaveBeenCalledWith({ name: 'Updated Name' });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve);
+    });
+  });
+
+  // Test case: POST /update-profile returns 404 if the user doesn't exist
+  test('POST /update-profile - returns 404 if user not found', async () => {
+    updateUser.mockReturnValue(null);
+
+    await new Promise(resolve => {
+      const req = {
+        user: { uid: 'invalid-uid' },
+        body: { name: 'No One' },
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(updateUser).toHaveBeenCalledWith('invalid-uid', { name: 'No One' });
+          expect(res.status).toHaveBeenCalledWith(404);
+          expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve);
+    });
+  });
+
+  // Test case: POST /create-profile should return a success message
+  test('POST /create-profile - returns creation message', async () => {
+    getUser.mockReturnValue(null); // Simulate user does not exist
+    createUser.mockReturnValue({ profile: { name: 'New Profile' } });
+
+    await new Promise(resolve => {
+      const req = {
+        user: { uid: 'test-uid' },
+        body: { name: 'New Profile' },
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Profile' }));
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'POST', url: '/create-profile' }, res, resolve);
+    });
+  });
+
+  test('GET /profile - returns token verification message and user profile', async () => {
+    const userProfile = { name: 'John Doe', email: 'john@example.com' };
+    getUser.mockReturnValue({ profile: userProfile });
+
+    await new Promise(resolve => {
+      const req = { user: { uid: 'test-uid' } };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockImplementation(() => {
+          expect(getUser).toHaveBeenCalledWith('test-uid');
+          expect(res.json).toHaveBeenCalledWith({ message: 'Token verified successfully', profile: userProfile });
+          resolve();
+          return res;
+        }),
+      };
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve);
+    });
   });
 });
 

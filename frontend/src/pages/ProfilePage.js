@@ -1,590 +1,524 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import axios from 'axios';
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
 
-    // create form with required fields
-    const [formData, setFormData] = useState({
-        fullName: '',
-        address1: '',
-        address2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        skills: [],
-        preferences: '',
-        availability:[],
-    });
+  // Form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    address1: '',
+    address2: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    skills: [],
+    preferences: '',
+    availability: [],
+  });
 
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+  // State to store original data (used for Cancel button)
+  const [initialFormData, setInitialFormData] = useState(null);
 
-    const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
-    const dropdownRef = useRef();
+  // UI state
+  const [isEditable, setIsEditable] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
 
-    const toggleSkillDropdown = () => {
-    setSkillDropdownOpen(prev => !prev);
-    };
+  const dropdownRef = useRef();
 
-    const toggleSkill = (skill, checked) => {
-    setFormData(prev => {
-        const newSkills = checked
-        ? [...prev.skills, skill]
-        : prev.skills.filter(s => s !== skill);
-        return { ...prev, skills: newSkills };
-    });
-    };
+  // Skill options list
+  const skillOptions = [
+    'Communication', 'Teamwork', 'Leadership', 'Event Planning',
+    'Fundraising', 'Public Speaking', 'Teaching/Tutoring',
+    'Childcare', 'Elderly Support', 'Community Outreach'
+  ];
 
-    const removeSkill = (skill) => {
-    setFormData(prev => ({
-        ...prev,
-        skills: prev.skills.filter(s => s !== skill)
-    }));
-    };
+  // Fetch profile data on component mount
+  useEffect(() => {
+    let unsubscribe;
+    let didCancel = false;
+    setLoading(true);
+    setError('');
 
-    useEffect(() => {
-    const handleClickOutside = (e) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setSkillDropdownOpen(false);
-        }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-    }, []);
-
-    
-
-    // array of skills
-    const skillOptions = [
-        'Communication',
-        'Teamwork',
-        'Leadership',
-        'Event Planning',
-        'Fundraising',
-        'Public Speaking',
-        'Teaching/Tutoring',
-        'Childcare',
-        'Elderly Support',
-        'Community Outreach'
-    ];    
-
-    
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
+    unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (didCancel) return;
+      if (!user) {
+        setError('User not logged in');
+        setLoading(false);
+        return;
+      }
+      try {
+        const idToken = await user.getIdToken();
+        const response = await axios.get('http://localhost:8080/api/users/profile', {
+          headers: {
+            Authorization: `Bearer ${idToken}`
+          }
         });
-    };
-
-    // functions for adding and removing dates of availability
-    const addDate = (date) => {
-        if (date && !formData.availability.includes(date)) {
-          setFormData(prev => ({
-            ...prev,
-            availability: [...prev.availability, date]
-          }));
-        }
-      };
-      
-      const removeDate = (date) => {
-        setFormData(prev => ({
-          ...prev,
-          availability: prev.availability.filter(d => d !== date)
-        }));
-      };
-      
-
-    // handles constraints
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
+        const profileData = response.data.profile; 
+        // Convert availability object to array if needed
+        const normalizedData = {
+          ...profileData,
+          availability: Array.isArray(profileData.availability)
+            ? profileData.availability
+            : Object.values(profileData.availability || {})
+        };
+        setFormData(normalizedData);
+        setInitialFormData(normalizedData);
         setError('');
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError('Failed to load profile.');
+      } finally {
+        setLoading(false);
+      }
+    });
+    return () => {
+      didCancel = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
-        //no whitespace for name
-        if (!formData.fullName.trim()) {
-            setError('Full Name is required.');
-            setLoading(false);
-            return;
-          }
-          
-          //name max characters
-          if (formData.fullName.length > 50) {
-            setError('Full Name cannot exceed 50 characters.');
-            setLoading(false);
-            return;
-          }
-
-          //no whitespace for address
-          if (!formData.address1.trim()) {
-            setError('Address is required.');
-            setLoading(false);
-            return;
-          }
-          
-          //address max length
-          if (formData.address1.length > 100) {
-            setError('Address cannot exceed 100 characters.');
-            setLoading(false);
-            return;
-          }
-
-          //address max length
-          if (formData.address2.length > 100) {
-            setError('Address cannot exceed 100 characters.');
-            setLoading(false);
-            return;
-          }
-
-          //city max length
-          if (formData.city.length > 100) {
-            setError('City cannot exceed 100 characters.');
-            setLoading(false);
-            return;
-          }
-
-        //no whitespace for city
-          if (!formData.city.trim()) {
-            setError('City is required.');
-            setLoading(false);
-            return;
-          }
-
-        //no null for state 
-        if (!formData.state) {
-            setError('Please select your state');
-            setLoading(false);
-            return;
-        }
-
-        //must meet format given for zip
-        if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
-            setError('Zip Code must be 5 digits or 5+4 format (e.g. 12345 or 12345-6789)');
-            setLoading(false);
-            return;
-        }
-
-        //no null for skills
-        if (formData.skills.length === 0) {
-            setError('Please select at least one skill');
-            setLoading(false);
-            return;
-        }
-
-        //no null for availability
-        if (formData.availability.length === 0) {
-            setError('Please select at least one availability date.');
-            setLoading(false);
-            return;
-          }
-          
-
-        //attempt to update
-        try{
-            console.log('Attempgin Update. Please Wait', formData);
-
-            setTimeout(() => {
-                navigate('/events');
-                setLoading(false);
-            }, 1000);
-        
-        } catch (err) {
-            setError('Update failed. Please try again.');
-            setLoading(false);
-        }
-
-
-        
+  // Handle clicking outside of dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setSkillDropdownOpen(false);
+      }
     };
 
-    
-    // actual text format 
-    return (
-        <div style={styles.container}>
-            <div style={styles.card}>
-                <h2 style={styles.title}>Profile</h2>
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-                {error && <div style={styles.error}>{error}</div>}
+  // Handle input changes only when editable
+  const handleChange = (e) => {
+    if (!isEditable) return; // Do nothing if not editing
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-                <form onSubmit={handleSubmit}>
-                        <div style={styles.formGroup}>
-                        <label style={styles.label}>Full name</label>
-                        <input
-                            type="text"
-                            name="fullName"
-                            value={formData.fullName}
-                            onChange={handleChange}
-                            maxLength={50}
-                            style={styles.input}
-                            placeholder="Enter Full name"
-                            required
-                            />
-                        </div>
+  // Toggle dropdown for skills
+  const toggleSkillDropdown = () => {
+    if (!isEditable) return;
+    setSkillDropdownOpen(prev => !prev);
+  };
 
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Address 1</label>
-                            <input 
-                                type="text"
-                                name="address1"
-                                value={formData.address1}
-                                onChange={handleChange}
-                                maxLength={100}
-                                style={styles.input}
-                                placeholder="Enter Address"
-                                required
-                            />
-                        </div>
+  // Toggle skill selection
+  const toggleSkill = (skill, checked) => {
+    if (!isEditable) return;
 
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Address 2</label>
-                            <input 
-                                type="text"
-                                name="address2"
-                                value={formData.address2}
-                                onChange={handleChange}
-                                maxLength={100}
-                                style={styles.input}
-                                placeholder="Enter Suite, Apt, Floor, etc."
-                                
-                            />
-                        </div>
+    setFormData(prev => ({
+      ...prev,
+      skills: checked
+        ? [...(Array.isArray(prev.skills) ? prev.skills : []), skill]
+        : (Array.isArray(prev.skills) ? prev.skills.filter(s => s !== skill) : [])
+    }));
+  };
 
+  // Remove individual skill
+  const removeSkill = (skill) => {
+    if (!isEditable) return;
 
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>City</label>
-                            <input 
-                                type="text"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleChange}
-                                style={styles.input}
-                                placeholder="Enter City"
-                                required
-                            />
-                        </div>
+    setFormData(prev => ({
+      ...prev,
+      skills: Array.isArray(prev.skills) ? prev.skills.filter(s => s !== skill) : []
+    }));
+  };
 
+  // Add availability date
+  const addDate = (date) => {
+    if (!isEditable || !date || formData.availability.includes(date)) return;
 
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>State</label>
-                            <select
-                                name="state"
-                                value={formData.state}
-                                onChange={handleChange}
-                                style={styles.input}
-                            >
-                                    <option value="">Select a state</option>
-                                    <option value="AL">Alabama</option>
-                                    <option value="AK">Alaska</option>
-                                    <option value="AZ">Arizona</option>
-                                    <option value="AR">Arkansas</option>
-                                    <option value="CA">California</option>
-                                    <option value="CO">Colorado</option>
-                                    <option value="CT">Connecticut</option>
-                                    <option value="DE">Delaware</option>
-                                    <option value="FL">Florida</option>
-                                    <option value="GA">Georgia</option>
-                                    <option value="HI">Hawaii</option>
-                                    <option value="ID">Idaho</option>
-                                    <option value="IL">Illinois</option>
-                                    <option value="IN">Indiana</option>
-                                    <option value="IA">Iowa</option>
-                                    <option value="KS">Kansas</option>
-                                    <option value="KY">Kentucky</option>
-                                    <option value="LA">Louisiana</option>
-                                    <option value="ME">Maine</option>
-                                    <option value="MD">Maryland</option>
-                                    <option value="MA">Massachusetts</option>
-                                    <option value="MI">Michigan</option>
-                                    <option value="MN">Minnesota</option>
-                                    <option value="MS">Mississippi</option>
-                                    <option value="MO">Missouri</option>
-                                    <option value="MT">Montana</option>
-                                    <option value="NE">Nebraska</option>
-                                    <option value="NV">Nevada</option>
-                                    <option value="NH">New Hampshire</option>
-                                    <option value="NJ">New Jersey</option>
-                                    <option value="NM">New Mexico</option>
-                                    <option value="NY">New York</option>
-                                    <option value="NC">North Carolina</option>
-                                    <option value="ND">North Dakota</option>
-                                    <option value="OH">Ohio</option>
-                                    <option value="OK">Oklahoma</option>
-                                    <option value="OR">Oregon</option>
-                                    <option value="PA">Pennsylvania</option>
-                                    <option value="RI">Rhode Island</option>
-                                    <option value="SC">South Carolina</option>
-                                    <option value="SD">South Dakota</option>
-                                    <option value="TN">Tennessee</option>
-                                    <option value="TX">Texas</option>
-                                    <option value="UT">Utah</option>
-                                    <option value="VT">Vermont</option>
-                                    <option value="VA">Virginia</option>
-                                    <option value="WA">Washington</option>
-                                    <option value="WV">West Virginia</option>
-                                    <option value="WI">Wisconsin</option>
-                                    <option value="WY">Wyoming</option>
-                            </select>
-                        </div>
+    setFormData(prev => ({
+      ...prev,
+      availability: [...prev.availability, date]
+    }));
+  };
 
+  // Remove availability date
+  const removeDate = (date) => {
+    if (!isEditable) return;
 
-                        <div style={styles.formGroup}>
-                        <label style={styles.label}>Zip Code</label>
-                            <input
-                                type="text"
-                                name="zipCode"
-                                value={formData.zipCode}
-                                onChange={handleChange}
-                                style={styles.input}
-                                placeholder="Enter Zipcode (12345 or 12345-6789)"
-                                maxLength={10}
-                                required
-                            />
-                        </div>
+    setFormData(prev => ({
+      ...prev,
+      availability: prev.availability.filter(d => d !== date)
+    }));
+  };
 
-                        
+  // Form validation logic unchanged...
+  const validate = () => {
+    if (!formData.fullName || typeof formData.fullName !== 'string' || !formData.fullName.trim()) return 'Full Name is required.';
+    if (typeof formData.fullName !== 'string' || formData.fullName.length > 50) return 'Full Name cannot exceed 50 characters.';
+    if (!formData.address1 || typeof formData.address1 !== 'string' || !formData.address1.trim()) return 'Address is required.';
+    if (typeof formData.address1 !== 'string' || formData.address1.length > 100) return 'Address cannot exceed 100 characters.';
+    if (formData.address2 && typeof formData.address2 === 'string' && formData.address2.length > 100) return 'Address 2 cannot exceed 100 characters.';
+    if (!formData.city || typeof formData.city !== 'string' || !formData.city.trim()) return 'City is required.';
+    if (typeof formData.city !== 'string' || formData.city.length > 100) return 'City cannot exceed 100 characters.';
+    if (!formData.state) return 'Please select your state.';
+    if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) return 'Zip Code must be in 12345 or 12345-6789 format.';
+    if (!Array.isArray(formData.skills) || formData.skills.length === 0) return 'Please select at least one skill.';
+    if (!Array.isArray(formData.availability) || formData.availability.length === 0) return 'Please select at least one availability date.';
+    return '';
+  };
 
+  // Handle form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    if (!isEditable) return;
+  
+    setLoading(true);
+    setError('');
+  
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      setLoading(false);
+      return;
+    }
+  
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        setError('User not logged in');
+        setLoading(false);
+        return;
+      }
+  
+      const idToken = await user.getIdToken();
+  
+      const res = await fetch('http://localhost:8080/api/users/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save profile');
+      }
+  
+      const updatedProfile = await res.json();
+      setInitialFormData(updatedProfile);
+      setIsEditable(false);
+      setLoading(false);
+      navigate('/events');
+    } catch (err) {
+      console.error('Profile update failed:', err);
+      setError(err.message || 'Update failed. Please try again.');
+      setLoading(false);
+    }
+  };
 
+  // Cancel edits and revert to original data
+  const handleCancel = () => {
+    setFormData(initialFormData);
+    setIsEditable(false);
+    setError('');
+  };
 
-                        <div style={styles.formGroup} ref={dropdownRef}>
-                        <label style={styles.label}>Skills <span style={{ color: 'red' }}>*</span></label>
+  return (
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Profile</h2>
+        {error && <div style={styles.error}>{error}</div>}
 
-                        <div
-                            onClick={toggleSkillDropdown}
-                            style={{
-                            ...styles.input,
-                            cursor: 'pointer',
-                            position: 'relative',
-                            userSelect: 'none',
-                            backgroundColor: '#fff'
-                            }}
-                        >
-                            {formData.skills.length === 0 ? 'Select skills...' : formData.skills.join(', ')}
-                        </div>
+        <form onSubmit={handleSubmit} noValidate>
+          {/* Name */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Full name</label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!isEditable} // Disabled unless editing
+            />
+          </div>
 
-                        {skillDropdownOpen && (
-                            <div style={{
-                            position: 'absolute',
-                            backgroundColor: 'white',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
-                            marginTop: '0.25rem',
-                            zIndex: 1000,
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            padding: '0.5rem',
-                            width: '100%'
-                            }}>
-                            {skillOptions.map(skill => (
-                                <label key={skill} style={{ display: 'block', marginBottom: '0.25rem' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.skills.includes(skill)}
-                                    onChange={(e) => toggleSkill(skill, e.target.checked)}
-                                />
-                                {' '}
-                                {skill}
-                                </label>
-                            ))}
-                            </div>
-                        )}
+          {/* Address 1 */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Address 1</label>
+            <input
+              type="text"
+              name="address1"
+              value={formData.address1}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!isEditable}
+            />
+          </div>
 
-                        {/* Tags for selected skills */}
-                        <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            {formData.skills.map(skill => (
-                            <div
-                                key={skill}
-                                style={{
-                                backgroundColor: '#3498db',
-                                color: 'white',
-                                borderRadius: '3px',
-                                padding: '0.25rem 0.5rem',
-                                display: 'flex',
-                                alignItems: 'center'
-                                }}
-                            >
-                                {skill}
-                                <button
-                                type="button"
-                                onClick={() => removeSkill(skill)}
-                                style={{
-                                    marginLeft: '0.5rem',
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                                >
-                                ×
-                                </button>
-                            </div>
-                            ))}
-                        </div>
-                        </div>
+          {/* Address 2 */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Address 2</label>
+            <input
+              type="text"
+              name="address2"
+              value={formData.address2}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!isEditable}
+            />
+          </div>
 
+          {/* City */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>City</label>
+            <input
+              type="text"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!isEditable}
+            />
+          </div>
 
+          {/* State */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>State</label>
+            <select
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!isEditable}
+            >
+              <option value="">Select a state</option>
+              {[
+                'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI',
+                'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI',
+                'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC',
+                'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT',
+                'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+              ].map(state => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+          </div>
 
+          {/* Zip */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Zip Code</label>
+            <input
+              type="text"
+              name="zipCode"
+              value={formData.zipCode}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!isEditable}
+            />
+          </div>
 
+          {/* Skills Multi-select */}
+          <div style={styles.formGroup} ref={dropdownRef}>
+            <label style={styles.label}>Skills</label>
+            {/* Display selected skills as badges */}
+            <div
+              onClick={toggleSkillDropdown}
+              style={{
+                ...styles.input,
+                cursor: isEditable ? 'pointer' : 'default',
+                minHeight: '40px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '5px',
+                alignItems: 'center',
+                backgroundColor: isEditable ? 'white' : '#f9f9f9'
+              }}
+            >
+              {(!Array.isArray(formData.skills) || formData.skills.length === 0) && <span style={{ color: '#999' }}>Select skills...</span>}
 
-
-                        <div style={styles.formGroup}>
-                        <label style={styles.label}>Preferences (optional)</label>
-                            <textarea
-                                name="preferences"
-                                value={formData.preferences}
-                                onChange={handleChange}
-                                style={{ ...styles.input, height: '100px', resize: 'vertical' }}
-                                placeholder="Enter any preferences here"
-                            />
-                        </div>
-
-                        
-                        <div style={styles.formGroup}>
-                        <label style={styles.label}>
-                            Availability (select one date at a time, required)
-                        </label>
-
-                        <input
-                            type="date"
-                            onChange={(e) => addDate(e.target.value)}
-                            style={styles.input}
-                        />
-
-                        <div style={{ marginTop: '0.5rem' }}>
-                            {formData.availability.length === 0 && (
-                            <p style={{ color: '#888' }}>No dates selected yet.</p>
-                            )}
-
-                            {formData.availability.map(date => (
-                            <div key={date} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                                <span>{date}</span>
-                                <button
-                                type="button"
-                                onClick={() => removeDate(date)}
-                                style={{
-                                    marginLeft: '10px',
-                                    cursor: 'pointer',
-                                    backgroundColor: '#e74c3c',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '3px',
-                                    padding: '0 6px'
-                                }}
-                                >
-                                
-                                </button>
-                            </div>
-                            ))}
-                        </div>
-                        </div>
-
-
-
-                        
-
-                        <button
-                            type="submit"
-                            style={loading ? {...styles.button, ...styles.buttonDisabled} : styles.button}
-                            disabled={loading}
-                        >
-                            {loading ? 'Updating...' : 'Update'}
-                        </button>
-
-
-
-                </form>
-
+              {Array.isArray(formData.skills) && formData.skills.map(skill => (
+                <span key={skill} style={styles.skillBadge}>
+                  {skill}
+                  {isEditable && (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        removeSkill(skill);
+                      }}
+                      style={styles.removeSkillBtn}
+                      aria-label={`Remove skill ${skill}`}
+                    >
+                      &times;
+                    </button>
+                  )}
+                </span>
+              ))}
             </div>
-        </div>
-    );
 
+            {/* Dropdown with skill options */}
+            {skillDropdownOpen && isEditable && (
+              <div style={styles.dropdown}>
+                {skillOptions.map(skill => (
+                  <label key={skill} style={styles.dropdownItem}>
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(formData.skills) && formData.skills.includes(skill)}
+                      onChange={e => toggleSkill(skill, e.target.checked)}
+                    />
+                    {' '}{skill}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
+          {/* Preferences Textarea */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Preferences</label>
+            <textarea
+              name="preferences"
+              value={formData.preferences}
+              onChange={handleChange}
+              style={styles.textarea}
+              disabled={!isEditable}
+            />
+          </div>
+
+          {/* Availability Dates */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Availability</label>
+            {/* Date picker for adding availability */}
+            {isEditable && (
+              <input
+                type="date"
+                onChange={e => {
+                  addDate(e.target.value);
+                  e.target.value = ''; // clear after add
+                }}
+                style={{ marginBottom: '10px' }}
+              />
+            )}
+
+            {/* Display selected dates as badges */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+              {Array.isArray(formData.availability) && formData.availability.map(date => (
+                <span key={date} style={styles.dateBadge}>
+                  {new Date(date).toLocaleDateString()}
+                  {isEditable && (
+                    <button
+                      type="button"
+                      onClick={() => removeDate(date)}
+                      style={styles.removeSkillBtn}
+                      aria-label={`Remove date ${date}`}
+                    >
+                      &times;
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ marginTop: '20px' }}>
+            {!isEditable ? (
+              // Show Edit button when NOT editing
+              <button
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault(); 
+                    console.log('Edit button clicked');
+                    setIsEditable(true);
+                }}
+                style={styles.primaryBtn}
+                >
+                Edit Profile
+              </button>
+            ) : (
+              // Show Save & Cancel when editing
+              <>
+                <button type="submit" disabled={loading} style={styles.primaryBtn}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={loading}
+                  style={styles.cancelBtn}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
-// Styles sheet for our page (default for all)
-    const styles = {
+// Styles (unchanged)
+const styles = {
+  container: { display: 'flex', justifyContent: 'center', padding: '20px' },
+  card: {
+    maxWidth: 600, width: '100%', backgroundColor: 'white',
+    borderRadius: 8, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+  },
+  title: { fontWeight: 'bold', fontSize: 24, marginBottom: 20 },
+  formGroup: { marginBottom: 15 },
+  label: { display: 'block', marginBottom: 5, fontWeight: 'bold' },
+  input: {
+    width: '100%', padding: 8, borderRadius: 4,
+    border: '1px solid #ccc', fontSize: 16,
+    boxSizing: 'border-box'
+  },
+  textarea: {
+    width: '100%', height: 80, padding: 8, borderRadius: 4,
+    border: '1px solid #ccc', fontSize: 16,
+    boxSizing: 'border-box'
+  },
+  skillBadge: {
+    backgroundColor: '#e0e0e0', borderRadius: 15, padding: '5px 10px',
+    display: 'inline-flex', alignItems: 'center', gap: '5px',
+    fontSize: 14,
+  },
+  removeSkillBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: 16, lineHeight: 1, padding: 0, color: 'red'
+  },
+  dropdown: {
+    position: 'absolute', backgroundColor: 'white',
+    border: '1px solid #ccc', borderRadius: 4,
+    maxHeight: 150, overflowY: 'auto',
+    marginTop: 5, zIndex: 10,
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  dropdownItem: {
+    display: 'block', padding: '5px 10px', cursor: 'pointer',
+    userSelect: 'none',
+  },
+  dateBadge: {
+    backgroundColor: '#cce5ff', borderRadius: 15, padding: '5px 10px',
+    display: 'inline-flex', alignItems: 'center', gap: '5px',
+    fontSize: 14,
+  },
+  primaryBtn: {
+    backgroundColor: '#007bff', color: 'white', padding: '10px 15px',
+    border: 'none', borderRadius: 4, cursor: 'pointer', marginRight: 10
+  },
+  cancelBtn: {
+    backgroundColor: '#6c757d', color: 'white', padding: '10px 15px',
+    border: 'none', borderRadius: 4, cursor: 'pointer'
+  },
+  error: {
+    marginBottom: 15,
+    color: 'red',
+    fontWeight: 'bold'
+  }
+};
 
-        container: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '80vh',
-            padding: '20px'
-        },
-    
-        card: {
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            width: '100%',
-            maxWidth: '400px'
-        },
-    
-        title: {
-            textAlign: 'center',
-            marginBottom: '1.5rem',
-            color: '#2c3e50'
-        },
-    
-        formGroup: {
-            marginBottom: '1rem'
-        },
-    
-        label: {
-            display: 'block',
-            marginBottom: '0.5rem',
-            fontWeight: '500',
-            color: '#555'
-        },
-    
-        input: {
-            width: '100%',
-            padding: '0.75rem',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            boxSizing: 'border-box'
-        },
-    
-        button: {
-            width: '100%',
-            backgroundColor: '#3498db',
-            color: 'white',
-            border: 'none',
-            padding: '0.75rem',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            marginTop: '1rem'
-        },
-    
-        buttonDisabled: {
-            backgroundColor: '#bdc3c7',
-            cursor: 'not-allowed'
-        },
-    
-        error: {
-            backgroundColor: '#fee',
-            color: '#c0392b',
-            padding: '0.75rem',
-            borderRadius: '4px',
-            marginBottom: '1rem',
-            border: '1px solid #f5c6cb'
-        },
-    
-        linkText: {
-            textAlign: 'center',
-            marginTop: '1rem'
-        },
-    
-        link: {
-            color: '#3498db',
-            textDecoration: 'none'
-        }
-    };
-// export Profile Page to site
 export default ProfilePage;
