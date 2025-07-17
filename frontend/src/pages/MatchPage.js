@@ -46,6 +46,17 @@ const MatchPage = () => {
         // Refresh matches after successful match
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
         setMatches(volunteerRes.data.matches || []);
+
+        //send the notification to volunteer here //
+        await axios.post('http://localhost:8080/api/notifications/send', {
+        uid: selectedVolunteer.uid,
+        title: 'New Event Assignment',
+        body: `You have been assigned to the event: ${selectedEvent.eventName}`,
+      });
+
+      console.log('Notification sent to volunteer');
+      /** End notification stuff **/
+      
       } else {
         alert(res.data.message || 'Match failed');
       }
@@ -62,6 +73,23 @@ const MatchPage = () => {
       });
       if (res.data.success) {
         alert('Volunteer unmatched successfully!');
+
+        //** Send notification to volunteer about removal **//
+      try {
+        const messageRes = await axios.post('http://localhost:8080/api/notifications/send', {
+          uid: userId,
+          title: 'You have been removed from an event',
+          body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`
+        });
+
+        if (!messageRes.data.success) {
+          console.warn('Notification sending failed:', messageRes.data.error);
+        }
+      } catch (notifError) {
+        console.error('Error sending notification:', notifError);
+      }
+      /** End notification stuff **/
+
         // Refresh matches after successful unmatch
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
         setMatches(volunteerRes.data.matches || []);

@@ -7,7 +7,8 @@ import SendIcon from '@mui/icons-material/Send';
 ///firebase stuff
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { messaging } from "../firebase";
-import { getToken, onMessage } from "firebase/messaging";
+import { onMessage } from "firebase/messaging";
+import { getFcmToken } from '../utils/notifications';
 
 // TO DO //
 /* 
@@ -21,26 +22,6 @@ date for message received and message sent are inconsistent
  (June vs 6)
  subject line is mandatory
 */
-
-
- ///grab FCM token for push notifications here
-const getFcmToken = async () => {
-  try {
-    const currentToken = await getToken(messaging , {
-      vapidKey: 'BO-QPzoEL6lO0nyJ1m1QSTfw34zxHFEiLalwxiFT02Yw200nu_e3rzyNx8EnKfvPmxN_Bu7oKuVd6F9s1xrNt1k',
-    });
-    if (currentToken) {
-      console.log('FCM Token:', currentToken);
-      return currentToken;
-    } else {
-      console.log('No registration token available.');
-      return null;
-    }
-  } catch (error) {
-    console.error('Error retrieving token:', error);
-    return null;
-  }
-};
 
 const NotificationSystem = () => {
 
@@ -79,57 +60,17 @@ const NotificationSystem = () => {
 
 
 /******USER AUTHENTICATION *****/
-//grab the user token here once the component loads
 useEffect(() => {
-  // Listen for auth state changes
-  const unsubscribeAuth = onAuthStateChanged(getAuth(), async (user) => {
-    if (!user) {
-      console.warn('User not logged in - cannot get FCM token');
-      return;
-    }
-
-    setUser(user); ///SAVES THE USER HERE!!!!!!!!!!!!
-
-    // Request Notification permission
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.warn('Notification permission not granted');
-      return;
-    }
-
-    try {
-      // Get FCM token using your VAPID key
-     const currentToken = await getFcmToken();
-     
-      if (!currentToken) {
-        console.warn('No FCM token retrieved');
-        return;
-      }
-
-      // Get Firebase Auth ID token for backend auth
-      const idToken = await user.getIdToken();
-      console.log('Token: ', idToken)
-
-
-      // Send FCM token to backend with authorization header
-      await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ token: currentToken }),
-      });
-
-      console.log('✅ FCM token sent to backend: ', currentToken);
-    } catch (error) {
-      console.error('Error during getToken or sending to backend:', error);
+  const unsubscribeAuth = onAuthStateChanged(getAuth(), (user) => {
+    if (user) {
+      setUser(user);
+    } else {
+      setUser(null);
     }
   });
 
-  return () => unsubscribeAuth(); // cleanup listener
+  return () => unsubscribeAuth();
 }, []);
-
 
 /***** NOTIFICATION USER LIST OF VOLUNTEERS+ADMINS *****/
 //grabs all the users from the backend 
@@ -227,7 +168,7 @@ useEffect(() => {
         'Authorization': `Bearer ${idToken}`,
       },
       body: JSON.stringify({
-        uid: recipientUid,
+        toUid: recipientUid, //receiver uid
         title: subject,
         body: message,
       }),
