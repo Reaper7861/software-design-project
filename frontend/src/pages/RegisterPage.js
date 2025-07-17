@@ -114,8 +114,8 @@ const RegisterPage = () => {
                 role: "volunteer"
             });
 
-            // Navigate to profile
-            navigate('/profile');
+            // Navigate to phantom page
+            navigate('/phantompage');
 
         } catch (err) {
             setError('Registration failed ' + err.message);
