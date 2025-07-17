@@ -105,32 +105,32 @@ const PhantomPage = () => {
         setError('');
       
         // Validate form
-        if (!formData.fullName.trim()) {
+        if (!formData.fullName || typeof formData.fullName !== 'string' || !formData.fullName.trim()) {
           setError('Full Name is required.');
           setLoading(false);
           return;
         }
-        if (formData.fullName.length > 50) {
+        if (typeof formData.fullName !== 'string' || formData.fullName.length > 50) {
           setError('Full Name cannot exceed 50 characters.');
           setLoading(false);
           return;
         }
-        if (!formData.address1.trim()) {
+        if (!formData.address1 || typeof formData.address1 !== 'string' || !formData.address1.trim()) {
           setError('Address is required.');
           setLoading(false);
           return;
         }
-        if (formData.address1.length > 100 || formData.address2.length > 100) {
+        if ((typeof formData.address1 === 'string' && formData.address1.length > 100) || (formData.address2 && typeof formData.address2 === 'string' && formData.address2.length > 100)) {
           setError('Address fields cannot exceed 100 characters.');
           setLoading(false);
           return;
         }
-        if (!formData.city.trim()) {
+        if (!formData.city || typeof formData.city !== 'string' || !formData.city.trim()) {
           setError('City is required.');
           setLoading(false);
           return;
         }
-        if (formData.city.length > 100) {
+        if (typeof formData.city !== 'string' || formData.city.length > 100) {
           setError('City cannot exceed 100 characters.');
           setLoading(false);
           return;
@@ -145,12 +145,12 @@ const PhantomPage = () => {
           setLoading(false);
           return;
         }
-        if (formData.skills.length === 0) {
+        if (!Array.isArray(formData.skills) || formData.skills.length === 0) {
           setError('Please select at least one skill');
           setLoading(false);
           return;
         }
-        if (formData.availability.length === 0) {
+        if (!Array.isArray(formData.availability) || formData.availability.length === 0) {
           setError('Please select at least one availability date.');
           setLoading(false);
           return;
@@ -354,7 +354,7 @@ const PhantomPage = () => {
                             backgroundColor: '#fff'
                             }}
                         >
-                            {formData.skills.length === 0 ? 'Select skills...' : formData.skills.join(', ')}
+                            {(!Array.isArray(formData.skills) || formData.skills.length === 0) ? 'Select skills...' : formData.skills.join(', ')}
                         </div>
 
                         {skillDropdownOpen && (
@@ -386,7 +386,7 @@ const PhantomPage = () => {
 
                         {/* Tags for selected skills */}
                         <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            {formData.skills.map(skill => (
+                            {Array.isArray(formData.skills) && formData.skills.map(skill => (
                             <div
                                 key={skill}
                                 style={{
@@ -423,6 +423,7 @@ const PhantomPage = () => {
 
 
 
+
                         <div style={styles.formGroup}>
                         <label style={styles.label}>Preferences (optional)</label>
                             <textarea
@@ -447,11 +448,11 @@ const PhantomPage = () => {
                         />
 
                         <div style={{ marginTop: '0.5rem' }}>
-                            {formData.availability.length === 0 && (
+                            {(!Array.isArray(formData.availability) || formData.availability.length === 0) && (
                             <p style={{ color: '#888' }}>No dates selected yet.</p>
                             )}
 
-                            {formData.availability.map(date => (
+                            {Array.isArray(formData.availability) && formData.availability.map(date => (
                             <div key={date} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
                                 <span>{date}</span>
                                 <button

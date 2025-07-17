@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import axios from 'axios';
 
 const ProfilePage = () => {
@@ -39,24 +40,26 @@ const ProfilePage = () => {
 
   // Fetch profile data on component mount
   useEffect(() => {
-    async function fetchProfile() {
+    let unsubscribe;
+    let didCancel = false;
+    setLoading(true);
+    setError('');
+
+    unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (didCancel) return;
+      if (!user) {
+        setError('User not logged in');
+        setLoading(false);
+        return;
+      }
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          setError('User not logged in');
-          return;
-        }
-  
         const idToken = await user.getIdToken();
-  
         const response = await axios.get('http://localhost:8080/api/users/profile', {
           headers: {
             Authorization: `Bearer ${idToken}`
           }
         });
-  
-        const profileData = response.data;
-  
+        const profileData = response.data.profile; 
         // Convert availability object to array if needed
         const normalizedData = {
           ...profileData,
@@ -64,20 +67,21 @@ const ProfilePage = () => {
             ? profileData.availability
             : Object.values(profileData.availability || {})
         };
-  
         setFormData(normalizedData);
         setInitialFormData(normalizedData);
+        setError('');
       } catch (err) {
         console.error('Error fetching profile:', err);
         setError('Failed to load profile.');
+      } finally {
+        setLoading(false);
       }
-    }
-  
-    fetchProfile();
+    });
+    return () => {
+      didCancel = true;
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
-
-
-  
 
   // Handle clicking outside of dropdown to close it
   useEffect(() => {
@@ -110,8 +114,8 @@ const ProfilePage = () => {
     setFormData(prev => ({
       ...prev,
       skills: checked
-        ? [...prev.skills, skill]
-        : prev.skills.filter(s => s !== skill)
+        ? [...(Array.isArray(prev.skills) ? prev.skills : []), skill]
+        : (Array.isArray(prev.skills) ? prev.skills.filter(s => s !== skill) : [])
     }));
   };
 
@@ -121,7 +125,7 @@ const ProfilePage = () => {
 
     setFormData(prev => ({
       ...prev,
-      skills: prev.skills.filter(s => s !== skill)
+      skills: Array.isArray(prev.skills) ? prev.skills.filter(s => s !== skill) : []
     }));
   };
 
@@ -147,17 +151,17 @@ const ProfilePage = () => {
 
   // Form validation logic unchanged...
   const validate = () => {
-    if (!formData.fullName.trim()) return 'Full Name is required.';
-    if (formData.fullName.length > 50) return 'Full Name cannot exceed 50 characters.';
-    if (!formData.address1.trim()) return 'Address is required.';
-    if (formData.address1.length > 100) return 'Address cannot exceed 100 characters.';
-    if (formData.address2.length > 100) return 'Address 2 cannot exceed 100 characters.';
-    if (!formData.city.trim()) return 'City is required.';
-    if (formData.city.length > 100) return 'City cannot exceed 100 characters.';
+    if (!formData.fullName || typeof formData.fullName !== 'string' || !formData.fullName.trim()) return 'Full Name is required.';
+    if (typeof formData.fullName !== 'string' || formData.fullName.length > 50) return 'Full Name cannot exceed 50 characters.';
+    if (!formData.address1 || typeof formData.address1 !== 'string' || !formData.address1.trim()) return 'Address is required.';
+    if (typeof formData.address1 !== 'string' || formData.address1.length > 100) return 'Address cannot exceed 100 characters.';
+    if (formData.address2 && typeof formData.address2 === 'string' && formData.address2.length > 100) return 'Address 2 cannot exceed 100 characters.';
+    if (!formData.city || typeof formData.city !== 'string' || !formData.city.trim()) return 'City is required.';
+    if (typeof formData.city !== 'string' || formData.city.length > 100) return 'City cannot exceed 100 characters.';
     if (!formData.state) return 'Please select your state.';
     if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) return 'Zip Code must be in 12345 or 12345-6789 format.';
-    if (formData.skills.length === 0) return 'Please select at least one skill.';
-    if (formData.availability.length === 0) return 'Please select at least one availability date.';
+    if (!Array.isArray(formData.skills) || formData.skills.length === 0) return 'Please select at least one skill.';
+    if (!Array.isArray(formData.availability) || formData.availability.length === 0) return 'Please select at least one availability date.';
     return '';
   };
 
@@ -226,7 +230,7 @@ const ProfilePage = () => {
         <h2 style={styles.title}>Profile</h2>
         {error && <div style={styles.error}>{error}</div>}
 
-        <form onSubmit={handleSubmit}noValidate>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Name */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Full name</label>
@@ -332,9 +336,9 @@ const ProfilePage = () => {
                 backgroundColor: isEditable ? 'white' : '#f9f9f9'
               }}
             >
-              {formData.skills.length === 0 && <span style={{ color: '#999' }}>Select skills...</span>}
+              {(!Array.isArray(formData.skills) || formData.skills.length === 0) && <span style={{ color: '#999' }}>Select skills...</span>}
 
-              {formData.skills.map(skill => (
+              {Array.isArray(formData.skills) && formData.skills.map(skill => (
                 <span key={skill} style={styles.skillBadge}>
                   {skill}
                   {isEditable && (
@@ -361,7 +365,7 @@ const ProfilePage = () => {
                   <label key={skill} style={styles.dropdownItem}>
                     <input
                       type="checkbox"
-                      checked={formData.skills.includes(skill)}
+                      checked={Array.isArray(formData.skills) && formData.skills.includes(skill)}
                       onChange={e => toggleSkill(skill, e.target.checked)}
                     />
                     {' '}{skill}
@@ -400,7 +404,7 @@ const ProfilePage = () => {
 
             {/* Display selected dates as badges */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {formData.availability.map(date => (
+              {Array.isArray(formData.availability) && formData.availability.map(date => (
                 <span key={date} style={styles.dateBadge}>
                   {new Date(date).toLocaleDateString()}
                   {isEditable && (
