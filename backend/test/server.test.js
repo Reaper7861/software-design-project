@@ -641,3 +641,167 @@ describe("Volunteer History Route", () => {
       expect(res.body).toHaveProperty("message", "Invalid user or event ID");
     });
   });
+
+// ** Event Management Testing here  ** //
+
+//Event Update Test ---------------------------------------------
+
+
+  describe("Event Management Routes", () => {
+  it("should update an existing event", async () => {
+    // Create an event
+    const createRes = await request(app)
+      .post("/api/events")
+      .set("Authorization", `Bearer ${adminIdToken}`)
+      .send({
+        eventName: "Original Event",
+        eventDate: "2025-08-10",
+        location: "Austin, TX",
+        requiredSkills: ["Teamwork"],
+        urgency: "Low",
+      });
+    expect(createRes.statusCode).toBe(201);
+    const eventId = createRes.body.event.eventId;
+
+    // Update the event
+    const updateRes = await request(app)
+      .put(`/api/events/${eventId}`)
+      .set("Authorization", `Bearer ${adminIdToken}`)
+      .send({
+        eventName: "Updated Event",
+        location: "Houston, TX",
+      });
+    expect(updateRes.statusCode).toBe(200);
+    expect(updateRes.body).toHaveProperty("success", true);
+    expect(updateRes.body.event).toMatchObject({
+      eventId,
+      eventName: "Updated Event",
+      location: "Houston, TX",
+    });
+
+    // Verify the update
+    const getRes = await request(app)
+      .get(`/api/events/${eventId}`)
+      .set("Authorization", `Bearer ${adminIdToken}`);
+    expect(getRes.body.event.eventName).toBe("Updated Event");
+  });
+});
+
+
+//Event Deletion Test --------------------------------------------
+it("should delete an event", async () => {
+  // Create an event
+  const createRes = await request(app)
+    .post("/api/events")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({
+      eventName: "Delete Event",
+      eventDate: "2025-08-11",
+      location: "Dallas, TX",
+      requiredSkills: ["Leadership"],
+      urgency: "Medium",
+    });
+  const eventId = createRes.body.event.eventId;
+
+  // Delete the event
+  const deleteRes = await request(app)
+    .delete(`/api/events/${eventId}`)
+    .set("Authorization", `Bearer ${adminIdToken}`);
+  expect(deleteRes.statusCode).toBe(200);
+  expect(deleteRes.body).toHaveProperty("success", true);
+
+  // Verify it’s gone
+  const getRes = await request(app)
+    .get(`/api/events/${eventId}`)
+    .set("Authorization", `Bearer ${adminIdToken}`);
+  expect(getRes.statusCode).toBe(404); // Assuming 404 for not found
+});
+
+
+// List All Events Test----------------------------------------------
+
+it("should retrieve all events", async () => {
+  // Create multiple events
+  await request(app)
+    .post("/api/events")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({
+      eventName: "Event 1",
+      eventDate: "2025-08-12",
+      location: "Austin, TX",
+      requiredSkills: ["Teamwork"],
+      urgency: "High",
+    });
+  await request(app)
+    .post("/api/events")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({
+      eventName: "Event 2",
+      eventDate: "2025-08-13",
+      location: "San Antonio, TX",
+      requiredSkills: ["Communication"],
+      urgency: "Low",
+    });
+
+  const res = await request(app)
+    .get("/api/events")
+    .set("Authorization", `Bearer ${adminIdToken}`);
+  expect(res.statusCode).toBe(200);
+  expect(res.body).toHaveProperty("success", true);
+  expect(Array.isArray(res.body.events)).toBe(true);
+  expect(res.body.events.length).toBeGreaterThanOrEqual(2);
+});
+
+// event matching edge cases ----------------------------
+
+it("should handle matching multiple volunteers to an event", async () => {
+  const createRes = await request(app)
+    .post("/api/events")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({
+      eventName: "Multi-Volunteer Event",
+      eventDate: "2025-08-14",
+      location: "Austin, TX",
+      requiredSkills: ["Teamwork"],
+      urgency: "Medium",
+    });
+  const eventId = createRes.body.event.eventId;
+
+  const userId1 = (await auth.getUserByEmail("test2@gmail.com")).uid;
+  const userId2 = (await auth.getUserByEmail("test3@gmail.com")).uid; // Assume another test user
+
+  await request(app)
+    .post("/api/matching")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({ userId: userId1, eventId });
+  await request(app)
+    .post("/api/matching")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({ userId: userId2, eventId });
+
+  const res = await request(app)
+    .get("/api/matching")
+    .set("Authorization", `Bearer ${adminIdToken}`);
+  expect(res.body.matches.length).toBeGreaterThanOrEqual(2);
+});
+
+it("should return empty matches for an event with no volunteers", async () => {
+  const createRes = await request(app)
+    .post("/api/events")
+    .set("Authorization", `Bearer ${adminIdToken}`)
+    .send({
+      eventName: "Empty Event",
+      eventDate: "2025-08-15",
+      location: "Houston, TX",
+      requiredSkills: ["Leadership"],
+      urgency: "Low",
+    });
+  const eventId = createRes.body.event.eventId;
+
+  const res = await request(app)
+    .get("/api/matching")
+    .set("Authorization", `Bearer ${adminIdToken}`);
+  expect(res.body.matches.filter(m => m.eventId === eventId).length).toBe(0);
+});
+
+// error handling tests -------------------------------------------
