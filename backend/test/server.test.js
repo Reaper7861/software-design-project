@@ -10,6 +10,12 @@ const app = require("../src/app");
 const admin = require("firebase-admin");
 // REST API for ID tokens
 const axios = require("axios");
+// MockData for helper functions
+const { getUser, updateUser } = require('../src/data/mockData');
+// Router from userRoutes
+const router = require('../src/routes/userRoutes');
+
+
 
 
 // Initialize Firebase Admin SDK
@@ -243,3 +249,167 @@ describe("API Endpoints", () => {
     expect(res.body).toHaveProperty("admin", true);
   });
 });
+
+
+
+
+// UserRoute Unit testing -------------------------------------------------------------------------------------------------------------------------------------------
+
+jest.mock('../src/data/mockData', () => ({
+  getUser: jest.fn(),
+  updateUser: jest.fn(),
+}));
+
+// Mock verifyToken middleware to inject a fake user
+jest.mock('../src/middleware/auth', () => ({
+  verifyToken: (req, res, next) => {
+    req.user = { uid: 'test-uid' };
+    next();
+  },
+}));
+
+// Helper to create mock request and response
+const mockResponse = () => {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
+};
+
+// Begin test suite for the profile-related Express routes
+describe('profileRoutes', () => {
+  
+  // Reset mock function call history before each test
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // Test case: GET /profile should return the user profile if the user exists
+  test('GET /profile - returns profile if user exists', async () => {
+    // Mock user profile returned by getUser
+    const userProfile = { name: 'John Doe', email: 'john@example.com' };
+    getUser.mockReturnValue({ profile: userProfile });
+
+    // Simulate Express request and response objects
+    const req = { user: { uid: 'test-uid' } };
+    const res = mockResponse();
+
+    // Manually invoke router handler for the /profile GET request
+    await new Promise(resolve =>
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve)
+    );
+
+    // Assert getUser was called with the correct user ID
+    expect(getUser).toHaveBeenCalledWith('test-uid');
+
+    // Assert the response includes the correct user profile
+    expect(res.json).toHaveBeenCalledWith(userProfile);
+  });
+
+  // Test case: GET /profile should return 404 if the user is not found
+  test('GET /profile - returns 404 if user not found', async () => {
+    // Simulate getUser returning null (user not found)
+    getUser.mockReturnValue(null);
+
+    const req = { user: { uid: 'missing-uid' } };
+    const res = mockResponse();
+
+    // Call the route handler
+    await new Promise(resolve =>
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve)
+    );
+
+    // Assert proper error handling
+    expect(getUser).toHaveBeenCalledWith('missing-uid');
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+  });
+
+  // Test case: POST /update-profile should return the updated user profile
+  test('POST /update-profile - returns updated profile', async () => {
+    // Define what updateUser should return
+    const updatedProfile = { name: 'Updated Name', email: 'john@example.com' };
+    updateUser.mockReturnValue({ profile: updatedProfile });
+
+    const req = {
+      user: { uid: 'test-uid' },
+      body: { name: 'Updated Name' }, // update payload
+    };
+    const res = mockResponse();
+
+    // Call the route handler
+    await new Promise(resolve =>
+      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve)
+    );
+
+    // Assert that the update was processed correctly
+    expect(updateUser).toHaveBeenCalledWith('test-uid', { name: 'Updated Name' });
+    expect(res.json).toHaveBeenCalledWith(updatedProfile);
+  });
+
+  // Test case: POST /update-profile returns 404 if the user doesn't exist
+  test('POST /update-profile - returns 404 if user not found', async () => {
+    // Simulate user not found scenario
+    updateUser.mockReturnValue(null);
+
+    const req = {
+      user: { uid: 'invalid-uid' },
+      body: { name: 'No One' },
+    };
+    const res = mockResponse();
+
+    // Call the route handler
+    await new Promise(resolve =>
+      router.handle({ ...req, method: 'POST', url: '/update-profile' }, res, resolve)
+    );
+
+    // Assert correct error response
+    expect(updateUser).toHaveBeenCalledWith('invalid-uid', { name: 'No One' });
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+  });
+
+  // Test case: POST /create-profile should return a success message
+  test('POST /create-profile - returns creation message', async () => {
+    const req = {
+      user: { uid: 'test-uid' },
+      body: { name: 'New Profile' },
+    };
+    const res = mockResponse();
+
+    // Call the route handler
+    await new Promise(resolve =>
+      router.handle({ ...req, method: 'POST', url: '/create-profile' }, res, resolve)
+    );
+
+    // Assert success response
+    expect(res.json).toHaveBeenCalledWith('You created!');
+  });
+
+  test('GET /profile - returns token verification message and user profile', async () => {
+    const userProfile = { name: 'John Doe', email: 'john@example.com' };
+  
+    // Mock getUser to return user with profile
+    getUser.mockReturnValue({ profile: userProfile });
+  
+    const req = { user: { uid: 'test-uid' } };
+    const res = mockResponse();
+  
+    // Call route handler manually
+    await new Promise(resolve =>
+      router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve)
+    );
+  
+    expect(getUser).toHaveBeenCalledWith('test-uid');
+  
+    // Expect response to include both token message and profile
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Token verified successfully',
+      profile: userProfile
+    });
+  });
+  
+
+
+});
+

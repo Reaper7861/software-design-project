@@ -9,19 +9,17 @@ const router = express.Router();
 // Protected test route (verify Firebase token)
 // GET: Fetch user profile
 router.get('/profile', verifyToken, (req, res) => {
+  const uid = req.user.uid;
+  const user = getUser(uid);
 
-    const uid = req.user.uid;
-    const user = getUser(uid);
-  
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
 
-    res.json(user.profile);
-
-    console.log('Token verified. User: ', req.user);
-    res.json({message: 'Token verified successfully', user: req.user});
+  console.log('Token verified. User: ', req.user);
+  return res.json({ message: 'Token verified successfully', profile: user.profile });
 });
+
 
 
 router.post('/update-profile', verifyToken, (req, res) => {
