@@ -618,7 +618,7 @@ it("should send notification successfully", async () => {
 
   const res = await request(app)
     .post("/api/notifications/send")
-    .set("Authorization", `Bearer ${idToken}`) // simulate auth with your test user token
+    .set("Authorization", `Bearer ${idToken}`) 
     .send({
       toUid,
       title: "Hello",
@@ -699,7 +699,7 @@ describe("Volunteer History Route", () => {
       state: "TX",
       zipCode: "12345",
       skills: skills || ["Teamwork"],
-      availability: ["2025-08-08"] // adjust based on your format
+      availability: ["2025-08-08"] 
     };
 
     const res = await request(app)
@@ -707,7 +707,7 @@ describe("Volunteer History Route", () => {
       .set("Authorization", `Bearer ${adminIdToken}`)
       .send(profileData);
 
-    console.log("Profile update response:", res.body); // log for debugging
+    console.log("Profile update response:", res.body); 
     return res;
   }
 
@@ -735,12 +735,12 @@ describe("Volunteer History Route", () => {
       const res = await request(app)
         .post("/api/matching")
         .set("Authorization", `Bearer ${adminIdToken}`)
-        .send({ userId: userId, eventId: eventId }); // updated to use userId
+        .send({ userId: userId, eventId: eventId });
 
       expect(res.statusCode).toBe(201);
       expect(res.body).toHaveProperty("success", true);
       expect(res.body.match).toMatchObject({
-        userId: userId, // updated to use userId
+        userId: userId, 
         eventId: eventId,
       });
     });
@@ -769,7 +769,7 @@ describe("Volunteer History Route", () => {
       const matchRes = await request(app)
         .post("/api/matching")
         .set("Authorization", `Bearer ${adminIdToken}`)
-        .send({ userId: userId, eventId: eventId }); // Updated to use userId
+        .send({ userId: userId, eventId: eventId }); 
 
       expect(matchRes.statusCode).toBe(201);
 
@@ -839,21 +839,21 @@ describe("Volunteer History Route", () => {
 
       const eventId = createEventRes.body.event.eventId;
 
-      //  Use hardcoded volunteer "test2@gmail.com" instead of dynamic volunteerEmail
+      //  Use hardcoded volunteer "test2@gmail.com" 
 
       const userId = (await auth.getUserByEmail("test2@gmail.com")).uid;
 
       const matchRes = await request(app)
         .post("/api/matching")
         .set("Authorization", `Bearer ${adminIdToken}`)
-        .send({ userId: userId, eventId: eventId }); // Updated to use userId
+        .send({ userId: userId, eventId: eventId });
 
       expect(matchRes.statusCode).toBe(201);
 
       const res = await request(app)
         .delete("/api/matching")
         .set("Authorization", `Bearer ${adminIdToken}`)
-        .send({ userId: userId, eventId: eventId }); // Updated to use userId
+        .send({ userId: userId, eventId: eventId }); 
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty("success", true);
@@ -1205,7 +1205,7 @@ describe('requireAdmin middleware', () => {
     jest.doMock('../src/data/mockData', () => ({users: mockUsers}));
   });
 
-  // Test: should return 404 if user not found
+  // Test: User not found
   it('should return 404 if user not found', () => {
     const { requireAdmin } = require('../src/middleware/role');
     requireAdmin(req, res, next);
@@ -1215,7 +1215,7 @@ describe('requireAdmin middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  // Test: should return 403 if user is not admin
+  // Test: User not admin
   it('should return 403 if user is not admin', () => {
     mockUsers.set('test-uid', { role: 'volunteer' });
     const { requireAdmin } = require('../src/middleware/role');
@@ -1226,7 +1226,7 @@ describe('requireAdmin middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  // Test: should call next if user is admin
+  // Test: User is admin
   it('should call next if user is admin', () => {
     mockUsers.set('test-uid', { role: 'administrator' });
     const { requireAdmin } = require('../src/middleware/role');
