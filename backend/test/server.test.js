@@ -1352,3 +1352,114 @@ describe('app.js', () => {
   });
 });
 
+
+// ** Validation.js Testing Here ** //
+
+const {
+  validateRegistration,
+  validateProfile,
+  validateEvent
+} = require('../src/middleware/validation');
+
+describe('validation.js middleware', () => {
+  let req, res, next;
+
+  beforeEach(() => {
+    req = { body: {} };
+    res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    next = jest.fn();
+  });
+
+  // Test: Missing email and password
+  it('validateRegistration: missing email and password', () => {
+    validateRegistration(req, res, next);
+    // Expected status code and error
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: Invalid email and password
+  it('validateRegistration: invalid email and password', () => {
+    req.body = { email: 'bad', password: '123' };
+    validateRegistration(req, res, next);
+    // Expected status code and error
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: Valid email and password
+  it('validateRegistration: valid email and password', () => {
+    req.body = { email: 'test@example.com', password: 'Valid123!' };
+    validateRegistration(req, res, next);
+    // Expected next call
+    expect(next).toHaveBeenCalled();
+  });
+
+  // Test: Missing required fields
+  it('validateProfile: missing required fields', () => {
+    validateProfile(req, res, next);
+    // Expected status code and error
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: Invalid field values
+  it('validateProfile: invalid field values', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '',
+      city: '',
+      state: 'Texas',
+      zipCode: 'abc',
+      skills: [],
+      availability: [],
+    };
+    validateProfile(req, res, next);
+    // Expected status code and error
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: Valid fields for profile
+  it('validateProfile: valid fields', () => {
+    req.body = {
+      fullName: 'Igris',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    // Expected next call
+    expect(next).toHaveBeenCalled();
+  });
+
+  // Test: Missing required fields
+  it('validateEvent: missing required fields', () => {
+    validateEvent(req, res, next);
+    // Expected status code and error
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: Valid fields for event
+  it('validateEvent: valid fields', () => {
+    req.body = {
+      eventName: 'Food Drive',
+      eventDescription: 'Distribute food',
+      eventDate: '2026-01-01',
+      location: 'Houston',
+      requiredSkills: ['Communication'],
+      urgency: 'high'
+    };
+    validateEvent(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+});
