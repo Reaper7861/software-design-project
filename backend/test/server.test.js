@@ -979,3 +979,154 @@ it("should return empty matches for an event with no volunteers", async () => {
 });
 
 // error handling tests -------------------------------------------
+
+
+
+
+//** Validators testing here **/
+
+const {
+  isValidEmail,
+  isValidPassword,
+  isValidSkill,
+  isValidSkillsArray,
+  isValidLocation,
+  isValidAvailability,
+  isValidEventName,
+  isValidEventDescription,
+  isValidEventDate,
+  isValidUrgencyLevel
+} = require("../src/utils/validators");
+
+describe("validators.js unit tests", () => {
+  describe("isValidEmail", () => {
+    it("should return true for valid emails", () => {
+      expect(isValidEmail("test@example.com")).toBe(true);
+      expect(isValidEmail("user.name+tag@domain.co")).toBe(true);
+    });
+
+    it("should return false for invalid emails", () => {
+      expect(isValidEmail("invalidemail")).toBe(false);
+      expect(isValidEmail("user@com")).toBe(false);
+      expect(isValidEmail("")).toBe(false);
+    });
+
+    it("should return false for emails over 75 characters", () => {
+      const longEmail = "a".repeat(70) + "@test.com";
+      expect(isValidEmail(longEmail)).toBe(false);
+    });
+  });
+
+  describe("isValidPassword", () => {
+    it("should return true for valid passwords", () => {
+      expect(isValidPassword("StrongPass1!")).toBe(true);
+    });
+
+    it("should return false for invalid passwords", () => {
+      expect(isValidPassword("short1!")).toBe(false); // too short
+      expect(isValidPassword("alllowercase1!")).toBe(false);
+      expect(isValidPassword("ALLUPPERCASE1!")).toBe(false);
+      expect(isValidPassword("NoNumber!")).toBe(false);
+      expect(isValidPassword("NoSpecialChar1")).toBe(false);
+      expect(isValidPassword("")).toBe(false);
+    });
+  });
+
+  describe("isValidSkill", () => {
+    it("should return true for valid skill", () => {
+      expect(isValidSkill("Communication")).toBe(true);
+    });
+
+    it("should return false for invalid skill", () => {
+      expect(isValidSkill("Dancing")).toBe(false);
+    });
+  });
+
+  describe("isValidSkillsArray", () => {
+    it("should return true for valid skills array", () => {
+      expect(isValidSkillsArray(["Communication", "Teamwork"])).toBe(true);
+    });
+
+    it("should return false for invalid skills array", () => {
+      expect(isValidSkillsArray(["Communication", "Dancing"])).toBe(false);
+      expect(isValidSkillsArray([])).toBe(false);
+      expect(isValidSkillsArray("NotAnArray")).toBe(false);
+    });
+  });
+
+  describe("isValidLocation", () => {
+    it("should return true for valid location", () => {
+      expect(isValidLocation({ city: "Austin", state: "TX" })).toBe(true);
+    });
+
+    it("should return false for invalid location", () => {
+      expect(isValidLocation(null)).toBeFalsy();
+      expect(isValidLocation({ city: "", state: "TX" })).toBeFalsy();
+      expect(isValidLocation({ city: "A".repeat(101), state: "TX" })).toBeFalsy();
+    });
+  });
+
+  describe("isValidAvailability", () => {
+    it("should return true for valid availability object", () => {
+      expect(isValidAvailability({ monday: true, tuesday: ["morning", "evening"] })).toBe(true);
+    });
+
+    it("should return false for invalid availability object", () => {
+      expect(isValidAvailability({ invalidDay: true })).toBe(false);
+      expect(isValidAvailability({ monday: ["invalidTime"] })).toBe(false);
+      expect(isValidAvailability(null)).toBe(false);
+    });
+  });
+
+  describe("isValidEventName", () => {
+    it("should return true for valid event name", () => {
+      expect(isValidEventName("Community Cleanup")).toBe(true);
+    });
+
+    it("should return false for invalid event name", () => {
+      expect(isValidEventName("")).toBeFalsy();
+      expect(isValidEventName("A".repeat(101))).toBeFalsy();
+    });
+  });
+
+  describe("isValidEventDescription", () => {
+    it("should return true for valid event description", () => {
+      expect(isValidEventDescription("A detailed description of the event.")).toBe(true);
+    });
+
+    it("should return false for invalid event description", () => {
+      expect(isValidEventDescription("Too short")).toBe(false);
+      expect(isValidEventDescription("A".repeat(2001))).toBe(false);
+    });
+  });
+
+  describe("isValidEventDate", () => {
+    it("should return true for future dates", () => {
+      const futureDate = new Date(Date.now() + 86400000).toISOString();
+      expect(isValidEventDate(futureDate)).toBe(true);
+    });
+
+    it("should return false for past dates", () => {
+      const pastDate = new Date(Date.now() - 86400000).toISOString();
+      expect(isValidEventDate(pastDate)).toBe(false);
+    });
+
+    it("should return false for invalid date strings", () => {
+      expect(isValidEventDate("invalid-date")).toBe(false);
+      expect(isValidEventDate("")).toBe(false);
+    });
+  });
+
+  describe("isValidUrgencyLevel", () => {
+    it("should return true for valid urgency levels", () => {
+      ["low", "medium", "high"].forEach(level => {
+        expect(isValidUrgencyLevel(level)).toBe(true);
+      });
+    });
+
+    it("should return false for invalid urgency levels", () => {
+      expect(isValidUrgencyLevel("urgent")).toBe(false);
+      expect(isValidUrgencyLevel("")).toBe(false);
+    });
+  });
+});

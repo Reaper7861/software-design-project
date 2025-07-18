@@ -12,9 +12,6 @@ const mockData = {
     // User event history
     userHistory: new Map(),
 
-    // Notifications tokens (FCM)
-    notificationsTokens: new Map(),
-
     // ID counters
     counters: {
         eventId: 100
@@ -247,15 +244,6 @@ const dataHelperFunctions = {
         return mockData.userHistory.get(userId) || [];
     },
 
-    // Notification helper functions
-    saveNotificationToken: (userId, token) => {
-        mockData.notificationsTokens.set(userId, token);
-    },
-
-    getNotificationToken: (userId) => {
-        return mockData.notificationsTokens.get(userId);
-    },
-
 
     // Volunteer Matching Helper Functions
     findMatchingVolunteers: (event) => {
@@ -362,7 +350,6 @@ const dataHelperFunctions = {
         mockData.events.clear();
         mockData.eventRegistrations.clear();
         mockData.userHistory.clear();
-        mockData.notificationsTokens.clear();
         mockData.counters.eventId = 1000;
     }
 };
