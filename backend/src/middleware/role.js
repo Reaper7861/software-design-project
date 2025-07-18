@@ -1,5 +1,5 @@
 // Import hard coded mock data
-const mockData = require('../mockData');
+const mockData = require('../data/mockData');
 
 // Get authenticated uid from token
 const requireAdmin = (req, res, next) => {
@@ -17,7 +17,7 @@ if(!user) {
 
 // If not admin, return 403 (forbidden)
 if(user.role !== 'administrator') {
-    return res.status(403).json({error: 'Acess denied - administrators only.'});
+    return res.status(403).json({error: 'Access denied - administrators only.'});
 }
 
 
