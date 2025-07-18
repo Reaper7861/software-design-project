@@ -46,13 +46,17 @@ const isValidLocation = (location) => {
 
 // Availability validation
 const isValidAvailability = (availability) => {
+    // Accept array of dates (strings)
+    if (Array.isArray(availability)) {
+        return availability.length > 0 && availability.every(date => typeof date === 'string' && date.length > 0);
+    }
+    // Old object format
     const validDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const validTimes = ['morning', 'afternoon', 'evening', 'night'];
 
     if(!availability || typeof availability !== 'object'){
         return false;
     }
-
 
     return Object.keys(availability).every(day => 
         validDays.includes(day) && (typeof availability[day] === 'boolean' || (Array.isArray(availability[day]) && availability[day].every(time => validTimes.includes(time))))
