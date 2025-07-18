@@ -32,21 +32,30 @@ router.post('/send', verifyToken, async (req, res) => {
   };
 
   try {
+  const response = await admin.messaging().send(message);
 
-    // Optional: store sender/recipient info in DB or logs here
+  res.json({ success: true, response, fromUid, toUid });
+} catch (error) {
+  console.error('Error sending notification:', error);
+
+  if (error.errorInfo?.code === 'messaging/registration-token-not-registered') {
     console.warn('FCM token is not registered anymore. Consider updating or deleting it.');
 
-    res.json({ success: true, response, fromUid, toUid });
-  } catch (error) {
-    console.error('Error sending notification:', error);
-    res.status(500).json({ error: error.message });
     /*
     if (toUid && fcmTokens[toUid]) {
       console.log(`Removing FCM token for UID ${toUid}:`, fcmTokens[toUid]);
       delete fcmTokens[toUid]; // Remove invalid token
     }*/
+
+// new token will be needed after
+
+    return res.status(410).json({
+      success: false,
+      message: 'FCM token not registered. Token removed, please refresh on client.',
     });
   }
+
+  res.status(500).json({ success: false, error: error.message });
 }
 });
 
