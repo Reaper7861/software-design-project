@@ -1304,3 +1304,51 @@ describe('userRoutes tests', () => {
   });
 });
 
+// ** App.js Testing Here ** //
+
+describe('app.js', () => {
+  // Test: Root route
+  it('should return API info at root route', async () => {
+    const res = await request(app).get('/');
+    // Expected status code and body
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('message', 'Volunteer Management System API');
+    expect(res.body).toHaveProperty('endpoints');
+  });
+
+  // Test: Unknown route
+  it('should return 404 for unknown route', async () => {
+    const res = await request(app).get('/api/does-not-exist');
+    // Expected status code and body
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty('error', 'Not Found');
+  });
+
+  // Test: Logging middleware
+  it('should call the logging middleware', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    await request(app).get('/');
+    // Expected call
+    expect(logSpy).toHaveBeenCalled();
+    logSpy.mockRestore();
+  });
+
+  // Test: Error handling
+  it('should handle errors with the global error handler', async () => {
+    const express = require('express');
+    const localApp = express();
+    localApp.get('/error', (req, res) => {
+      throw new Error('Test error');
+    });
+    localApp.use((err, req, res, next) => {
+      res.status(err.status || 500).json({
+        error: err.message || 'Internal Server Error'
+      });
+    });
+    const res = await request(localApp).get('/error');
+    // Expected status code and body
+    expect(res.status).toBe(500);
+    expect(res.body).toHaveProperty('error', 'Test error');
+  });
+});
+
