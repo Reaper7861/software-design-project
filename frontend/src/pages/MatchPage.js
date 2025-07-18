@@ -4,6 +4,7 @@ import {
   TableContainer, TableHead, TableRow, Paper, Button
 } from '@mui/material';
 import axios from 'axios';
+import { getAuth, onAuthStateChanged } from "firebase/auth"; //used for authentication
 
 const MatchPage = () => {
   const [volunteers, setVolunteers] = useState([]);
@@ -11,6 +12,9 @@ const MatchPage = () => {
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [matches, setMatches] = useState([]);
+  //keeps track of the user so that we can send notifs
+    const [user, setUser] = useState(null);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,6 +35,19 @@ const MatchPage = () => {
     fetchData();
   }, []);
 
+  //** User authentication here **//
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(getAuth(), (user) => {
+      if (user) {
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+    });
+  
+    return () => unsubscribeAuth();
+  }, []);
+
 
   const handleCreateMatch = async () => {
     if (!selectedVolunteer || !selectedEvent) return;
@@ -47,15 +64,26 @@ const MatchPage = () => {
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
         setMatches(volunteerRes.data.matches || []);
 
-        //send the notification to volunteer here //
-        await axios.post('http://localhost:8080/api/notifications/send', {
-        uid: selectedVolunteer.uid,
-        title: 'New Event Assignment',
-        body: `You have been assigned to the event: ${selectedEvent.eventName}`,
-      });
+        // *** send the notification to volunteer here - start*** //
 
-      console.log('Notification sent to volunteer');
-      /** End notification stuff **/
+        const idToken = await user.getIdToken();
+        console.log("User uid: ", selectedVolunteer.uid);
+
+        await fetch('http://localhost:8080/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            toUid: selectedVolunteer.uid,
+            title: 'New Event Assignment',
+            body: `You have been assigned to the event: ${selectedEvent.eventName}`,
+          }),
+        });
+
+        console.log('Notification sent to volunteer');
+        /** End notification stuff **/
       
       } else {
         alert(res.data.message || 'Match failed');
@@ -76,14 +104,25 @@ const MatchPage = () => {
 
         //** Send notification to volunteer about removal **//
       try {
-        const messageRes = await axios.post('http://localhost:8080/api/notifications/send', {
-          uid: userId,
-          title: 'You have been removed from an event',
-          body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`
-        });
+        const idToken = await user.getIdToken();
 
-        if (!messageRes.data.success) {
-          console.warn('Notification sending failed:', messageRes.data.error);
+        const messageRes = await fetch('http://localhost:8080/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            toUid: userId,
+            title: 'You have been removed from an event',
+            body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`,
+          }),
+        });
+        
+        const messageData = await messageRes.json();
+
+        if (!messageData.success) {
+          console.warn('Notification sending failed:', messageData.error);
         }
       } catch (notifError) {
         console.error('Error sending notification:', notifError);

@@ -9,15 +9,22 @@ const { fcmTokens } = require('../utils/fcmTokenStore');
 router.post('/send', verifyToken, async (req, res) => {
   const { toUid, title, body } = req.body;
   const fromUid = req.user.uid;  // From the verified token middleware
+  console.log("uid, title, body: ", toUid, title, body);
 
   if (!toUid || !title || !body) {
     return res.status(400).json({ error: 'Missing recipient uid, title, or body' });
   }
 
   const token = fcmTokens[toUid];
+
+  //lack of token, abort sending a notification until token refresh
   if (!token) {
-    return res.status(404).json({ error: `No FCM token found for uid: ${toUid}` });
-  }
+  console.warn(`No FCM token found for uid: ${toUid}`);
+  return res.json({ 
+    success: true, 
+    message: `No FCM token found for uid: ${toUid}. Skipped sending notification.` 
+  });
+}
 
   const message = {
     notification: { title, body },
@@ -25,15 +32,22 @@ router.post('/send', verifyToken, async (req, res) => {
   };
 
   try {
-    const response = await admin.messaging().send(message);
 
     // Optional: store sender/recipient info in DB or logs here
+    console.warn('FCM token is not registered anymore. Consider updating or deleting it.');
 
     res.json({ success: true, response, fromUid, toUid });
   } catch (error) {
     console.error('Error sending notification:', error);
     res.status(500).json({ error: error.message });
+    /*
+    if (toUid && fcmTokens[toUid]) {
+      console.log(`Removing FCM token for UID ${toUid}:`, fcmTokens[toUid]);
+      delete fcmTokens[toUid]; // Remove invalid token
+    }*/
+    });
   }
+}
 });
 
 
