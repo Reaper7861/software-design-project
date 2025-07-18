@@ -246,61 +246,6 @@ const dataHelperFunctions = {
 
 
     // Volunteer Matching Helper Functions
-    findMatchingVolunteers: (event) => {
-        const matches = [];
-
-        mockData.users.forEach((user, userId) => {
-            // If already registered, skip
-            if(mockData.eventRegistrations.get(event.eventId)?.has(userId)){
-                return;
-            }
-
-            let matchingScore = 0;
-
-            // Checking skill match
-            const userSkills = user.profile.skills || [];
-            const requiredSkills = event.requiredSkills || [];
-            const matchingSkills = requiredSkills.filter(skill => 
-                userSkills.includes(skill)
-            );
-            matchingScore += matchingSkills.length * 10;
-
-
-            // Location match
-            const userLocation = `${user.profile.city}, ${user.profile.state}`.toLowerCase();
-            const eventLocation = event.location.toLowerCase();
-            if(userLocation === eventLocation || 
-                event.location.includes(user.profile.city) || 
-                event.location.includes(user.profile.state)){
-                    matchingScore += 20;
-                }
-
-
-            // Checking availability matches
-            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const dayOfTheWeek = dayNames[new Date(event.eventDate).getDay()];
-
-            if(user.profile.availability?.[dayOfTheWeek]) {
-                matchingScore += 15;
-            }
-
-            if(matchingScore > 0){
-                matches.push({
-                    userId,
-                    userEmail: user.email,
-                    userName: user.profile.fullName,
-                    matchingScore,
-                    matchingSkills,
-                    locationMatch: event.location.includes(user.profile.city) || event.location.includes(user.profile.state)
-                });
-            }
-        });
-
-        // Sorting by matching score (descending order)
-        return matches.sort((a, b) => b.matchingScore - a.matchingScore);
-    },
-
-    // Store volunteer-event match
     assignVolunteerToEvent: (userId, eventId) => {
         if (!mockData.users.has(userId) || !mockData.events.has(eventId)) {
             return null;
@@ -350,7 +295,7 @@ const dataHelperFunctions = {
         mockData.events.clear();
         mockData.eventRegistrations.clear();
         mockData.userHistory.clear();
-        mockData.counters.eventId = 1000;
+        mockData.counters.eventId = 100;
     }
 };
 
