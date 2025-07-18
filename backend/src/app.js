@@ -50,6 +50,26 @@ app.use('/api/notifications', notificationRoutes);
 app.use("/api/events", eventRoutes);
 app.use('/api/matching', matchingRoutes);
 
+
+// test-only error route for branch coverage
+// otherwise, app.js is not covered
+if (process.env.NODE_ENV === 'test') {
+  app.get('/test-error', (req, res, next) => {
+    if (req.query.type === 'no-message') {
+      next({});
+    } else if (req.query.type === 'custom-status') {
+      const err = new Error('Boom!');
+      err.status = 418;
+      next(err);
+    } else {
+      const err = new Error('Dev error');
+      err.status = 500;
+      next(err);
+    }
+  });
+}
+
+
 // 404 Handler
 app.use((req, res) => {
     res.status(404).json({
