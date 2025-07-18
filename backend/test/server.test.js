@@ -18,6 +18,7 @@ const { getUser, updateUser } = require('../src/data/mockData');
 const router = require('../src/routes/userRoutes');
 
 
+
 // Initialize Firebase Admin SDK
 const serviceAccount = require("../serviceAccountKey.json");
 if(!admin.apps.length) {
@@ -322,13 +323,6 @@ describe('profileRoutes', () => {
     updateUser: jest.fn(),
     createUser: jest.fn(),
   }));
-  jest.mock('../src/middleware/auth', () => ({
-    verifyToken: (req, res, next) => {
-      req.user = req.user || { uid: 'test-uid' };
-      next();
-    },
-  }));
-
   // Re-import after mocking
   const { getUser, updateUser, createUser } = require('../src/data/mockData');
   const router = require('../src/routes/userRoutes');
@@ -474,8 +468,8 @@ describe('profileRoutes', () => {
       router.handle({ ...req, method: 'GET', url: '/profile' }, res, resolve);
     });
   });
-});
 
+});
 
 // ** Testing Notifications here ** //
 
@@ -1235,6 +1229,78 @@ describe('requireAdmin middleware', () => {
     expect(next).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
+  });
+});
+
+// ** User Routes Testing here ** //
+
+describe('userRoutes tests', () => {
+  let app, getUser, updateUser, createUser;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.isolateModules(() => {
+      jest.mock('../src/data/mockData', () => ({
+        getUser: jest.fn(),
+        updateUser: jest.fn(),
+        createUser: jest.fn(),
+      }));
+      jest.mock('../src/middleware/auth', () => ({
+        verifyToken: (req, res, next) => {
+          req.user = { uid: 'test-uid' };
+          next();
+        }
+      }));
+      const express = require('express');
+      const router = require('../src/routes/userRoutes');
+      app = express();
+      app.use(express.json());
+      app.use('/api/users', router);
+      getUser = require('../src/data/mockData').getUser;
+      updateUser = require('../src/data/mockData').updateUser;
+      createUser = require('../src/data/mockData').createUser;
+    });
+  });
+
+  it('POST /api/users/create-profile returns 500 if updateUser fails', async () => {
+    getUser.mockReturnValue({});
+    updateUser.mockReturnValue(null);
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send({ name: 'Fail Update' });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to create or update user' });
+  });
+
+  it('POST /api/users/create-profile returns 500 if createUser fails', async () => {
+    getUser.mockReturnValue(null);
+    createUser.mockReturnValue(null);
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send({ name: 'Fail Create' });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to create or update user' });
+  });
+
+  it('POST /api/users/update-profile returns 404 if body is missing or invalid', async () => {
+    updateUser.mockReturnValue(null);
+    const res = await request(app)
+      .post('/api/users/update-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send();
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'User not found' });
+  });
+
+  it('GET /api/users/profile returns 200 with profile undefined if user object is missing profile property', async () => {
+    getUser.mockReturnValue({});
+    const res = await request(app)
+      .get('/api/users/profile')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: 'Token verified successfully', profile: undefined });
   });
 });
 
