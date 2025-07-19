@@ -1,4 +1,4 @@
-// mockData unit tests
+// mockData.js unit tests
 // Separate file from server.test.js to avoid errors 
 
 const mockDataModule = require('../src/data/mockData');

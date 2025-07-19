@@ -1,4 +1,4 @@
-// AuthService unit tests
+// authService.js unit tests
 // Separate file from server.test.js to avoid errors 
 
 jest.mock('../src/config/firebase', () => ({

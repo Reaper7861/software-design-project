@@ -1,4 +1,4 @@
-// auth.js unit tests 
+// app.js unit tests 
 // Separate file from server.test.js to avoid errors 
 
 const request = require('supertest');
