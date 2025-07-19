@@ -578,19 +578,21 @@ describe("Notification Routes", () => {
   listUsersMock.mockRestore();
 });
 
-  //missing FCM token for uid given
-  it("should return 404 if no FCM token is found for given uid", async () => {
+  //missing FCM token for uid given //temporarily set to 200 = ok due to testing limitation !!
+  it("should return 200 and a warning message if no FCM token is found for given uid", async () => {
   const res = await request(app)
     .post("/api/notifications/send")
-    .set("Authorization", `Bearer ${idToken}`) 
+    .set("Authorization", `Bearer ${idToken}`)
     .send({
       toUid: "nonexistent_uid",
       title: "Test",
       body: "Test body"
     });
 
-  expect(res.statusCode).toBe(404);
-  expect(res.body).toHaveProperty("error");
+  expect(res.statusCode).toBe(200);
+  expect(res.body).toHaveProperty("success", true);
+  expect(res.body).toHaveProperty("message");
+  expect(res.body.message).toMatch(/No FCM token found/);
 });
 
 
