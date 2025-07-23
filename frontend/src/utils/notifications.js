@@ -1,4 +1,4 @@
-import { getToken } from "firebase/messaging";
+import { getToken, onMessage  } from "firebase/messaging";
 import { messaging } from "../firebase";
 
 //grabs the FCM token 
@@ -26,3 +26,11 @@ export const getFcmToken = async () => {
     return null;
   }
 };
+
+export const onMessageListener = () =>
+  new Promise((resolve) => {
+    onMessage(messaging, (payload) => {
+      console.log("Foreground message received:", payload);
+      resolve(payload);
+    });
+  });
