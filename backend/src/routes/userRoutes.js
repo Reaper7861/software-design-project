@@ -1,23 +1,28 @@
 // Import Express and Firebase token verification middleware
 const express = require('express')
 const {verifyToken} = require('../middleware/auth');
-const { getUser, updateUser, createUser } = require('../data/mockData');
+const supabase = require('../config/databaseBackend');
 
 // New router instance
 const router = express.Router();
 
 // Protected test route (verify Firebase token)
 // GET: Fetch user profile
-router.get('/profile', verifyToken, (req, res) => {
+router.get('/profile', verifyToken, async (req, res) => {
   const uid = req.user.uid;
-  const user = getUser(uid);
-
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+  try {
+    const { data: profile, error } = await supabase
+      .from('userprofile')
+      .select('*')
+      .eq('uid', uid)
+      .single();
+    if (error || !profile) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.json({ message: 'Token verified successfully', profile });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to fetch profile' });
   }
-
-  console.log('Token verified. User: ', req.user);
-  return res.json({ message: 'Token verified successfully', profile: user.profile });
 });
 
 

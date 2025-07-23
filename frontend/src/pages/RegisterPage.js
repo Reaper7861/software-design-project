@@ -97,13 +97,16 @@ const RegisterPage = () => {
                 formData.password
             );
 
-
             const token = await userCredential.user.getIdToken();
 
-            await fetch('http://localhost:8080/api/users/profile', {
+            // Create user in Supabase via backend
+            await fetch('http://localhost:8080/api/users/create-profile', {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
-                }
+                },
+                body: JSON.stringify({ email: formData.email })
             });
 
 
