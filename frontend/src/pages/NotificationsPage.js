@@ -61,9 +61,22 @@ const NotificationSystem = () => {
 
 /******USER AUTHENTICATION *****/
 useEffect(() => {
-  const unsubscribeAuth = onAuthStateChanged(getAuth(), (user) => {
+  const unsubscribeAuth = onAuthStateChanged(getAuth(), async (user) => {
     if (user) {
       setUser(user);
+      const token = await getFcmToken();
+      if (token) {
+        // Send to backend immediately
+        const idToken = await user.getIdToken();
+        await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ token: token }),
+        });
+      }
     } else {
       setUser(null);
     }
@@ -160,19 +173,6 @@ useEffect(() => {
     try {
       const recipientUid = selectedVolunteer.uid;
       const idToken = await user.getIdToken();
-      const token = await getFcmToken(); //grab token again.
-
-      console.log("New FCM token is: ", token);
-
-      // Save sender's FCM token to backend
-    await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ fcmToken: token }),
-    });
 
       const res = await fetch('http://localhost:8080/api/notifications/send', {
       method: 'POST',

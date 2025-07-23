@@ -21,8 +21,9 @@ router.post('/send', verifyToken, async (req, res) => {
     .select('fcm_token')
     .eq('user_id', toUid)
     .eq('is_active', true)
+    .order('updated_at', { ascending: false }) //thisll choose the latest token
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (tokenError) {
     console.error('Error fetching FCM token:', tokenError);
@@ -79,6 +80,7 @@ router.post('/save-fcm-token', verifyToken, async (req, res) => {
   const { token } = req.body;
   const uid = req.user.uid;
 
+  console.log("Backend FCM token saving: ", token);
   if (!token) {
     return res.status(400).json({ error: 'Missing token' });
   }
