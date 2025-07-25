@@ -25,40 +25,66 @@ router.get('/profile', verifyToken, async (req, res) => {
   }
 });
 
-
-
-router.post('/update-profile', verifyToken, (req, res) => {
-
-    console.log("you updated ");
-
-    const uid = req.user.uid;
-    const updates = req.body;
-
-    const updatedUser = updateUser(uid, updates);
-  
-    if (!updatedUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-  
-    res.json(updatedUser.profile);
-
-    
-  });
-
-router.post('/create-profile', verifyToken, (req, res) => {
-  const uid = req.user.uid;
+// Update profile
+router.post('/update-profile', verifyToken, async (req, res) => {
+  const uid = req.user.uid.trim(); // Trim any whitespace
+  console.log('UID for update-profile:', uid); // Debug log
   const updates = req.body;
-  // Try to update existing user, or create if not exists
-  let user = getUser(uid);
-  if (user) {
-    user = updateUser(uid, updates);
-  } else {
-    user = createUser(uid, updates);
+  try {
+    const { data, error } = await supabase
+      .from('userprofile')
+      .update(updates)
+      .eq('uid', uid)
+      .select()
+      .single();
+    if (error || !data) {
+      return res.status(404).json({ error: 'User not found or update failed' });
+    }
+    res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to update profile' });
   }
-  if (!user) {
-    return res.status(500).json({ error: 'Failed to create or update user' });
+});
+
+// POST: Create or update user profile
+router.post('/create-profile', verifyToken, async (req, res) => {
+  const uid = req.user.uid;
+  const email = req.user.email;
+  const profileData = req.body;
+
+  try {
+    // Insert into UserCredentials if not exists
+    const { data: existing, error: findError } = await supabase
+      .from('usercredentials')
+      .select('uid')
+      .eq('uid', uid)
+      .single();
+
+    if (!existing) {
+      const { error: credError } = await supabase
+        .from('usercredentials')
+        .insert([{ uid, email, password: '', role: 'volunteer' }]);
+      if (credError) {
+        console.error('Error creating user credentials:', credError);
+        return res.status(500).json({ error: 'Failed to create user credentials' });
+      }
+    }
+
+    // Upsert UserProfile
+    const { error: profileError } = await supabase
+      .from('userprofile')
+      .upsert([{ uid, ...profileData }], { onConflict: ['uid'] });
+
+    if (profileError) {
+      console.error('Error creating/updating profile:', profileError);
+      return res.status(500).json({ error: profileError.message });
+    }
+
+    res.json({ message: 'Profile created/updated successfully' });
+  } catch (err) {
+    console.error('Create profile error:', err);
+    res.status(500).json({ error: 'Failed to create/update profile' });
   }
-  res.json(user.profile);
 });
 
 
