@@ -55,7 +55,7 @@ const MatchPage = () => {
     try {
       const res = await axios.post('http://localhost:8080/api/matching', {
         userId: selectedVolunteer.uid,
-        eventId: selectedEvent.eventId,
+        eventId: selectedEvent.eventid,
       });
 
       if (res.data.success) {
@@ -78,7 +78,7 @@ const MatchPage = () => {
           body: JSON.stringify({
             toUid: selectedVolunteer.uid,
             title: 'New Event Assignment',
-            body: `You have been assigned to the event: ${selectedEvent.eventName}`,
+            body: `You have been assigned to the event: ${selectedEvent.eventname}`,
           }),
         });
 
@@ -218,22 +218,22 @@ const MatchPage = () => {
             <TableBody>
               {events.map((e) => (
                 <TableRow
-                  key={e.eventId}
+                  key={e.eventid}
                   hover
-                  selected={selectedEvent?.eventId === e.eventId}
-                  onClick={() => setSelectedEvent(selectedEvent?.eventId === e.eventId ? null : e)}
+                  selected={selectedEvent?.eventid === e.eventid}
+                  onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
                   sx={{
                     cursor: 'pointer',
-                    backgroundColor: selectedEvent?.eventId === e.eventId ? '#e0f7fa' : 'inherit',
+                    backgroundColor: selectedEvent?.eventid === e.eventid ? '#e0f7fa' : 'inherit',
                   }}
                 >
-                  <TableCell>{e.eventId}</TableCell>
-                  <TableCell>{e.eventName}</TableCell>
-                  <TableCell>{e.eventDescription}</TableCell>
+                  <TableCell>{e.eventid}</TableCell>
+                  <TableCell>{e.eventname}</TableCell>
+                  <TableCell>{e.eventdescription}</TableCell>
                   <TableCell>{e.location}</TableCell>
-                  <TableCell>{Array.isArray(e.requiredSkills) ? e.requiredSkills.join(', ') : e.requiredSkills}</TableCell>
+                  <TableCell>{Array.isArray(e.requiredskills) ? e.requiredskills.join(', ') : e.requiredskills}</TableCell>
                   <TableCell>{e.urgency}</TableCell>
-                  <TableCell>{e.eventDate}</TableCell>
+                  <TableCell>{e.eventdate}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -270,13 +270,13 @@ const MatchPage = () => {
               <TableBody>
                 {matches.map((m, idx) => (
                   <TableRow key={idx}>
-                    <TableCell>{m.user?.profile?.fullName || m.user?.fullName || m.userId}</TableCell>
-                    <TableCell>{m.event?.eventName || m.eventId}</TableCell>
+                    <TableCell>{m.user?.email || m.userid}</TableCell>
+                    <TableCell>{m.event?.eventname || m.eventid}</TableCell>
                     <TableCell>
                       <Button
                         variant="outlined"
                         color="error"
-                        onClick={() => handleRemoveMatch(m.userId, m.eventId)}
+                        onClick={() => handleRemoveMatch(m.uid, m.eventid)}
                       >
                         Unmatch
                       </Button>

@@ -40,7 +40,7 @@ const volunteerList = React.useMemo(() => {
 
   // Filter volunteers based on search input
   const filteredVolunteers = volunteerList.filter(name =>
-    name.toLowerCase().includes(search.toLowerCase())
+    typeof name === 'string' && name.toLowerCase().includes(search.toLowerCase())
   );
 
   // If selectedVolunteer no longer exists in list (e.g., after data reload), clear it
@@ -143,7 +143,7 @@ const volunteerList = React.useMemo(() => {
           <TableBody>
             {paginatedItems.map((event, index) => (
               <TableRow key={index}>
-                <TableCell>{event.volunteer}</TableCell>
+                <TableCell>{event.volunteer || 'Unknown'}</TableCell>
                 <TableCell>{event.eventName}</TableCell>
                 <TableCell>{event.description}</TableCell>
                 <TableCell>{event.location}</TableCell>

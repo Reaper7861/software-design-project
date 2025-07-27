@@ -1,11 +1,9 @@
 // Import Firebase Admin SDK
-const admin = require('firebase-admin');
-
+const { auth } = require('../config/firebase');
 
 // Middleware to verify Firebase ID token
 const verifyToken = async(req, res, next) => {
     const header = req.headers.authorization;
-
 
     // If no token or wrong format, access denied
     if(!header || !header.startsWith('Bearer ')) {
@@ -16,7 +14,7 @@ const verifyToken = async(req, res, next) => {
     const idToken = header.split('Bearer ')[1];
 
     try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
+        const decoded = await auth.verifyIdToken(idToken);
         req.user = decoded;
         next();
     } catch (error) {
@@ -24,6 +22,5 @@ const verifyToken = async(req, res, next) => {
         res.status(401).json({error: 'Invalid token'});
     }
 };
-
 
 module.exports = {verifyToken};

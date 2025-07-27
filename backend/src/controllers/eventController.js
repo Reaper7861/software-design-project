@@ -1,54 +1,83 @@
-const {createEvent, getAllEvents, getEvent, updateEvent, deleteEvent} = require('../data/mockData');
-
+const supabase = require('../config/databaseBackend');
 
 // Create Event
-const createEventHandler = (req, res) => {
+const createEventHandler = async (req, res) => {
   try {
-    const event = createEvent(req.body);
-    res.status(201).json({ success: true, event });
+    const { eventname, eventdescription, eventdate, location, requiredskills, urgency } = req.body;
+    const { data, error } = await supabase
+      .from('eventdetails')
+      .insert([{ eventname, eventdescription, eventdate, location, requiredskills, urgency}])
+      .select();
+    if (error) throw error;
+    res.status(201).json({ success: true, event: data[0] });
   } catch (err) {
-    console.error("Create Event Error:", err); 
+    console.error("Create Event Error:", err);
     res.status(500).json({ success: false, message: "Failed to create event" });
   }
 };
 
 // Get All Events
-const getAllEventsHandler = (req, res) => {
+const getAllEventsHandler = async (req, res) => {
   try {
-    const events = getAllEvents();
-    res.status(200).json({ success: true, events });
+    const { data, error } = await supabase
+      .from('eventdetails')
+      .select('*');
+    if (error) throw error;
+    res.status(200).json({ success: true, events: data });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to fetch events" });
   }
 };
 
 // Get Single Event
-const getEventByIdHandler = (req, res) => {
-  const event = getEvent(req.params.id);
-  if (!event) {
-    return res.status(404).json({ success: false, message: "Event not found" });
+const getEventByIdHandler = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('eventdetails')
+      .select('*')
+      .eq('eventid', req.params.id)
+      .single();
+    if (error || !data) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+    res.json({ success: true, event: data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch event" });
   }
-  res.json({ success: true, event });
 };
 
 // Update Event
-const updateEventHandler = (req, res) => {
-  const updated = updateEvent(req.params.id, req.body);
-  if (!updated) {
-    return res.status(404).json({ success: false, message: "Event not found" });
+const updateEventHandler = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('eventdetails')
+      .update(req.body)
+      .eq('eventid', req.params.id)
+      .select();
+    if (error || !data || data.length === 0) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+    res.json({ success: true, event: data[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to update event" });
   }
-  res.json({ success: true, event: updated });
 };
 
-// Delete Event 
-const deleteEventHandler = (req, res) => {
-  const deleted = deleteEvent(req.params.id);
-  if (!deleted) {
-    return res.status(404).json({ success: false, message: "Event not found" });
+// Delete Event
+const deleteEventHandler = async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('eventdetails')
+      .delete()
+      .eq('eventid', req.params.id);
+    if (error) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+    res.json({ success: true, message: "Event deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to delete event" });
   }
-  res.json({ success: true, message: "Event deleted successfully" });
 };
-
 
 module.exports = {
   createEvent: createEventHandler,
