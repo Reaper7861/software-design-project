@@ -113,20 +113,19 @@ const EventManagement = () => {
 
         try {
             const payload = {
-                eventName: formData.name,
-                eventDescription: formData.description,
+                eventname: formData.name,
+                eventdescription: formData.description,
                 location: formData.location,
-                requiredSkills: formData.skills,
+                requiredskills: formData.skills, // always an array
                 urgency: formData.urgency,
-                eventDate: formData.date,
-                createdBy: "65fRWpFmA2OVNXlEX4RiRv1LK3v2" 
+                eventdate: formData.date
             };
 
             if (formData.id) {
                 // Update existing event
                 const res = await axios.put(`http://localhost:8080/api/events/${formData.id}`, payload);
                 setEvents(prev =>
-                    prev.map(e => e.eventId === formData.id ? res.data.event : e)
+                    prev.map(e => e.eventid === formData.id ? res.data.event : e)
                 );
             } else {
                 // Create new event
@@ -147,21 +146,22 @@ const EventManagement = () => {
     // Handle erroes during form submission, editing, and deletion
     const handleEdit = (event) => {
         setFormData({
-        id: event.eventId, // store backend ID in frontend state
-        name: event.eventName,
-        description: event.eventDescription,
-        location: event.location,
-        skills: event.requiredSkills,
-        urgency: event.urgency,
-        date: event.eventDate
-    });
-    setError('');
+            id: event.eventid,
+            name: event.eventname,
+            description: event.eventdescription,
+            location: event.location,
+            skills: event.requiredskills,
+            urgency: event.urgency,
+            // Convert ISO string to YYYY-MM-DD for the date input
+            date: event.eventdate ? event.eventdate.slice(0, 10) : ''
+        });
+        setError('');
     };
 
     const handleDelete = async (eventId) => {
         try {
             await axios.delete(`http://localhost:8080/api/events/${eventId}`);
-            setEvents(prev => prev.filter(e => e.eventId !== eventId));
+            setEvents(prev => prev.filter(e => e.eventid !== eventId));
         } catch (err) {
             console.error(err);
             setError('Failed to delete event.');
@@ -309,7 +309,7 @@ const EventManagement = () => {
                 <Paper sx={{ maxHeight: 300, overflowY: 'auto' }}>
                     <List dense>
                         {events.map((event, index) => (
-                            <React.Fragment key={event.eventId}>
+                            <React.Fragment key={event.eventid}>
                                 {/* ListItem for each event with edit and delete actions */}
                                 <ListItem
                                     secondaryAction={
@@ -329,7 +329,7 @@ const EventManagement = () => {
                                                 variant="outlined"
                                                 color="error"
                                                 size="small"
-                                                onClick={() => handleDelete(event.eventId)}
+                                                onClick={() => handleDelete(event.eventid)}
                                             >
                                                 Delete
                                             </Button>
@@ -337,8 +337,8 @@ const EventManagement = () => {
                                     }
                                 >
                                     <ListItemText
-                                        primary={event.eventName}
-                                        secondary={`Date: ${event.eventDate} | Skills: ${event.requiredSkills.join(', ')}`}
+                                        primary={event.eventname}
+                                        secondary={`Date: ${event.eventdate} | Skills: ${(Array.isArray(event.requiredskills) ? event.requiredskills : typeof event.requiredskills === 'string' ? [event.requiredskills] : []).join(', ') || 'None'}`}
                                     />
                                 </ListItem>
                                 {/* Divider between events */}

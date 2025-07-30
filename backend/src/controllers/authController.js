@@ -59,7 +59,8 @@ class AuthController {
                 message: "Login successful",
                 uid: user.uid,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                admin: user.role === "administrator"
             });
         } catch(error) {
             console.error("Login error: ", error);
