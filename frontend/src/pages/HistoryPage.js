@@ -33,14 +33,20 @@ useEffect(() => {
       });
   }, []);
 
-  //map the data
+  //map the data, also make sure its actually valid data and not broken
 const volunteerList = React.useMemo(() => {
-    return Array.from(new Set(allHistory.map(entry => entry.volunteer)));
-  }, [allHistory]);
+  return Array.from(
+    new Set(
+      allHistory
+        .map(entry => entry.volunteername)
+        .filter(name => typeof name === 'string')
+    )
+  );
+}, [allHistory]);
 
   // Filter volunteers based on search input
   const filteredVolunteers = volunteerList.filter(name =>
-    typeof name === 'string' && name.toLowerCase().includes(search.toLowerCase())
+    (name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   // If selectedVolunteer no longer exists in list (e.g., after data reload), clear it
@@ -53,7 +59,7 @@ const volunteerList = React.useMemo(() => {
 
   // Filter history by selected volunteer
   const filteredHistory = selectedVolunteer
-    ? allHistory.filter(entry => entry.volunteer === selectedVolunteer)
+    ? allHistory.filter(entry => entry.volunteername === selectedVolunteer)
     : allHistory;
 
 
@@ -143,14 +149,18 @@ const volunteerList = React.useMemo(() => {
           <TableBody>
             {paginatedItems.map((event, index) => (
               <TableRow key={index}>
-                <TableCell>{event.volunteer || 'Unknown'}</TableCell>
-                <TableCell>{event.eventName}</TableCell>
-                <TableCell>{event.description}</TableCell>
+                <TableCell>{event.volunteername}</TableCell>
+                <TableCell>{event.eventname}</TableCell>
+                <TableCell>{event.eventdescription}</TableCell>
                 <TableCell>{event.location}</TableCell>
-                <TableCell>{event.requiredSkills}</TableCell>
+                <TableCell>{event.requiredskills}</TableCell>
                 <TableCell>{event.urgency}</TableCell>
-                <TableCell>{event.date}</TableCell>
-                <TableCell>{event.participationStatus}</TableCell>
+                <TableCell>{event.eventdate && new Date(event.eventdate).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}</TableCell>
+                <TableCell>{event.participationstatus}</TableCell>
               </TableRow>
             ))}
           </TableBody>
