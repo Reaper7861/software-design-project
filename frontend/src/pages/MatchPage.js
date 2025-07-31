@@ -13,8 +13,7 @@ const MatchPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [matches, setMatches] = useState([]);
   //keeps track of the user so that we can send notifs
-    const [user, setUser] = useState(null);
-  
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,10 +43,9 @@ const MatchPage = () => {
         setUser(null);
       }
     });
-  
+
     return () => unsubscribeAuth();
   }, []);
-
 
   const handleCreateMatch = async () => {
     if (!selectedVolunteer || !selectedEvent) return;
@@ -65,7 +63,6 @@ const MatchPage = () => {
         setMatches(volunteerRes.data.matches || []);
 
         // *** send the notification to volunteer here - start*** //
-
         const idToken = await user.getIdToken();
         console.log("User uid: ", selectedVolunteer.uid);
 
@@ -84,7 +81,7 @@ const MatchPage = () => {
 
         console.log('Notification sent to volunteer');
         /** End notification stuff **/
-      
+
       } else {
         alert(res.data.message || 'Match failed');
       }
@@ -103,31 +100,31 @@ const MatchPage = () => {
         alert('Volunteer unmatched successfully!');
 
         //** Send notification to volunteer about removal **//
-      try {
-        const idToken = await user.getIdToken();
+        try {
+          const idToken = await user.getIdToken();
 
-        const messageRes = await fetch('http://localhost:8080/api/notifications/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            toUid: userId,
-            title: 'You have been removed from an event',
-            body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`,
-          }),
-        });
-        
-        const messageData = await messageRes.json();
+          const messageRes = await fetch('http://localhost:8080/api/notifications/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              toUid: userId,
+              title: 'You have been removed from an event',
+              body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`,
+            }),
+          });
 
-        if (!messageData.success) {
-          console.warn('Notification sending failed:', messageData.error);
+          const messageData = await messageRes.json();
+
+          if (!messageData.success) {
+            console.warn('Notification sending failed:', messageData.error);
+          }
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
         }
-      } catch (notifError) {
-        console.error('Error sending notification:', notifError);
-      }
-      /** End notification stuff **/
+        /** End notification stuff **/
 
         // Refresh matches after successful unmatch
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
@@ -210,7 +207,7 @@ const MatchPage = () => {
                 <TableCell>Name</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Location</TableCell>
-                <TableCell>Required Skills</TableCell>
+                <TableCell>Required Skills</ TableCell>
                 <TableCell>Urgency</TableCell>
                 <TableCell>Date</TableCell>
               </TableRow>
@@ -262,7 +259,8 @@ const MatchPage = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Volunteer</TableCell>
+                  <TableCell>Volunteer's Name</TableCell>
+                  <TableCell>Volunteer's Email</TableCell>
                   <TableCell>Event</TableCell>
                   <TableCell>Action</TableCell>
                 </TableRow>
@@ -270,8 +268,9 @@ const MatchPage = () => {
               <TableBody>
                 {matches.map((m, idx) => (
                   <TableRow key={idx}>
-                    <TableCell>{m.user?.email || m.userid}</TableCell>
-                    <TableCell>{m.event?.eventname || m.eventid}</TableCell>
+                    <TableCell>{m.volunteername || 'N/A'}</TableCell>
+                    <TableCell>{m.user?.email || 'N/A'}</TableCell>
+                    <TableCell>{m.eventname || m.eventid}</TableCell>
                     <TableCell>
                       <Button
                         variant="outlined"

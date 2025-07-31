@@ -100,7 +100,7 @@ const LoginPage = () => {
             login({
                 uid: loginData.uid,
                 email: loginData.email,
-                role: loginData.admin ? "administrator" : "volunteer",
+                role: loginData.role ? "administrator" : "volunteer",
                 profile: profileData.user.profile
             });
 
