@@ -4,10 +4,41 @@ const supabase = require('../config/databaseBackend');
 const matchVolunteerHandler = async (req, res) => {
   const { userId, eventId } = req.body;
   try {
-    // Insert into volunteerhistory
+    // Fetch volunteer profile
+    const { data: volunteerProfile, error: profileError } = await supabase
+      .from('userprofile')
+      .select('"fullName"')
+      .eq('uid', userId)
+      .single();
+    if (profileError || !volunteerProfile) {
+      return res.status(404).json({ success: false, message: "Volunteer profile not found" });
+    }
+
+    // Fetch event details
+    const { data: eventDetails, error: eventError } = await supabase
+      .from('eventdetails')
+      .select('*')
+      .eq('eventid', eventId)
+      .single();
+    if (eventError || !eventDetails) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
+
+    // Insert into volunteerhistory with all details
     const { data, error } = await supabase
       .from('volunteerhistory')
-      .insert([{ uid: userId, eventid: eventId }])
+      .insert([{
+        uid: userId,
+        volunteername: volunteerProfile.fullName,
+        eventid: eventId,
+        eventname: eventDetails.eventname,
+        eventdescription: eventDetails.eventdescription,
+        location: eventDetails.location,
+        requiredskills: eventDetails.requiredskills,
+        urgency: eventDetails.urgency,
+        eventdate: eventDetails.eventdate,
+        participationstatus: 'assigned'
+      }])
       .select();
     if (error) {
       return res.status(400).json({ success: false, message: error.message });
@@ -43,27 +74,25 @@ const getAllMatchesAndVolunteersHandler = async (req, res) => {
       .eq('role', 'volunteer');
     if (volError) throw volError;
 
-    // Filter out volunteers with no profile (profile === null)
+    // Filter out volunteers with no profile
     const filteredVolunteers = (volunteers || []).filter(v => v.profile);
 
-    // Get all matches, joining eventdetails and usercredentials
+    // Get all matches with user email
     const { data: matches, error: matchError } = await supabase
       .from('volunteerhistory')
       .select(`
-        *,
-        event:eventid (
-          eventid,
-          eventname,
-          eventdescription,
-          location,
-          requiredskills,
-          urgency,
-          eventdate
-        ),
-        user:uid (
-          uid,
-          email
-        )
+        id,
+        uid,
+        volunteername,
+        eventid,
+        eventname,
+        eventdescription,
+        location,
+        requiredskills,
+        urgency,
+        eventdate,
+        participationstatus,
+        user:uid (email)
       `);
     if (matchError) throw matchError;
 
