@@ -4,9 +4,26 @@
 jest.mock('firebase-admin', () => {
   const verifyIdToken = jest.fn();
   return {
-    auth: () => ({ verifyIdToken })
+    auth: () => ({ verifyIdToken }),
+    apps: [],
+    initializeApp: jest.fn(),
+    credential: {
+      cert: jest.fn()
+    }
   };
 });
+
+// Mock Supabase client 
+jest.mock('../src/config/databaseBackend', () => ({
+  from: jest.fn().mockReturnThis(),
+  select: jest.fn().mockReturnThis(),
+  eq: jest.fn().mockReturnThis(),
+  single: jest.fn(),
+  insert: jest.fn().mockReturnThis(),
+  upsert: jest.fn().mockReturnThis(),
+  update: jest.fn().mockReturnThis(),
+  onConflict: jest.fn().mockReturnThis()
+}));
 
 const { verifyToken } = require('../src/middleware/auth');
 
