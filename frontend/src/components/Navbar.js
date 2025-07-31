@@ -60,7 +60,7 @@ const styles = {
     navbarOuter: {
         backgroundColor: '#483C32',
         color: '#F4F5DC',
-        fontFamily: 'Segoe UI'
+        fontFamily: 'Roboto' // Changed font
     },
 
     titleContainer: {
@@ -95,35 +95,13 @@ const styles = {
         display: 'flex',
         gap: '1rem'
     },
-
-    // Flexbox container
-    // container: {
-    //     display: 'flex',
-    //     flexDirection: 'column',
-    //     alignItems: 'center',
-    //     gap: '1rem'
-    // },
-
-    // App title 
+    
     title: {
         margin: 0,
         textAlign: 'center',
-        fontSize: '35px'
+        fontSize: '35px',
+        fontFamily: 'Roboto' // Changed font
     },
-
-    // Button container(s)
-    // buttonContainer: {
-    //     display: 'flex',
-    //     gap: '1rem',
-    //     flexWrap: 'wrap',
-    //     justifyContent: 'center'
-    // },
-
-    // Button styling
-    // button: {
-    //     color: 'white',
-    //     borderColor: 'white'
-    // }
 }
 
 export default Navbar;

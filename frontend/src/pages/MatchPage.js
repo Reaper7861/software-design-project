@@ -47,8 +47,18 @@ const MatchPage = () => {
     return () => unsubscribeAuth();
   }, []);
 
-  const handleCreateMatch = async () => {
+    const handleCreateMatch = async () => {
     if (!selectedVolunteer || !selectedEvent) return;
+
+    // Check if the volunteer is already matched to the event
+    const alreadyMatched = matches.some(
+      (m) => m.uid === selectedVolunteer.uid && m.eventid === selectedEvent.eventid
+    );
+
+    if (alreadyMatched) {
+      alert('This volunteer is already matched to this event.');
+      return;
+    }
 
     try {
       const res = await axios.post('http://localhost:8080/api/matching', {
@@ -172,7 +182,7 @@ const MatchPage = () => {
                   onClick={() => setSelectedVolunteer(selectedVolunteer?.uid === v.uid ? null : v)}
                   sx={{
                     cursor: 'pointer',
-                    backgroundColor: selectedVolunteer?.uid === v.uid ? '#e0f7fa' : 'inherit',
+                    backgroundColor: selectedVolunteer?.uid === v.uid ? '#adadadff' : 'inherit',
                   }}
                 >
                   <TableCell>{v.profile?.fullName}</TableCell>
@@ -249,43 +259,121 @@ const MatchPage = () => {
         </Button>
       </Box>
 
-      {/* Existing Matches Table */}
+      {/* Existing Matches Section */}
+
       <Box sx={{ mt: 3 }}>
-        <Typography variant="h6" sx={{ color: 'white' }}>Existing Matches</Typography>
-        {matches.length === 0 ? (
-          <Typography>No matches made yet.</Typography>
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Volunteer's Name</TableCell>
-                  <TableCell>Volunteer's Email</TableCell>
-                  <TableCell>Event</TableCell>
-                  <TableCell>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {matches.map((m, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{m.volunteername || 'N/A'}</TableCell>
-                    <TableCell>{m.user?.email || 'N/A'}</TableCell>
-                    <TableCell>{m.eventname || m.eventid}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => handleRemoveMatch(m.uid, m.eventid)}
-                      >
-                        Unmatch
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+          <Typography variant="h6" sx={{ color: 'white' }}>Existing Matches</Typography>
+          {matches.length === 0 ? (
+              <Typography>No matches made yet.</Typography>
+          ) : (
+              <div>
+                  {/* Group matches by event ID */}
+                  {Object.entries(matches.reduce((acc, m) => {
+                      if (!acc[m.eventid]) {
+                          acc[m.eventid] = [];
+                      }
+                      acc[m.eventid].push(m);
+                      return acc;
+                  }, {})).map(([eventid, eventMatches]) => {
+                      // Find the event details from the events state
+                      const event = events.find(e => e.eventid === parseInt(eventid));
+
+                      return (
+                          <Box key={eventid} sx={{ mb: 4, bgcolor: 'white', borderRadius: 1, border: '1px solid #ccc', padding: 2 }}>
+                              {/* Event Information Table */}
+                              {event ? (
+                                  <TableContainer component={Paper} sx={{ mb: 2 }}>
+                                      <Typography variant="h6" sx={{ p: 1 }}>
+                                          Event
+                                      </Typography>
+                                      <Table>
+                                          <TableHead>
+                                              <TableRow>
+                                                  <TableCell>Event ID</TableCell>
+                                                  <TableCell>Name</TableCell>
+                                                  <TableCell>Description</TableCell>
+                                                  <TableCell>Location</TableCell>
+                                                  <TableCell>Required Skills</TableCell>
+                                                  <TableCell>Urgency</TableCell>
+                                                  <TableCell>Date</TableCell>
+                                              </TableRow>
+                                          </TableHead>
+                                          <TableBody>
+                                              <TableRow>
+                                                  <TableCell>{event.eventid}</TableCell>
+                                                  <TableCell>{event.eventname}</TableCell>
+                                                  <TableCell>{event.eventdescription}</TableCell>
+                                                  <TableCell>{event.location}</TableCell>
+                                                  <TableCell>{Array.isArray(event.requiredskills) ? event.requiredskills.join(', ') : event.requiredskills}</TableCell>
+                                                  <TableCell>{event.urgency}</TableCell>
+                                                  <TableCell>{event.eventdate}</TableCell>
+                                              </TableRow>
+                                          </TableBody>
+                                      </Table>
+                                  </TableContainer>
+                              ) : (
+                                  <Typography>Event details not found for Event ID: {eventid}</Typography>
+                              )}
+
+                              {/* Volunteer Information - offset */}
+                              <Box sx={{ ml: 3 }}>
+                                  <TableContainer component={Paper}>
+                                      <Typography variant="h6" sx={{ p: 1 }}>
+                                          Volunteers
+                                      </Typography>
+                                      <Table size="small">
+                                          <TableHead>
+                                              <TableRow>
+                                                  <TableCell>Name</TableCell>
+                                                  <TableCell>Address</TableCell>
+                                                  <TableCell>City</TableCell>
+                                                  <TableCell>State</TableCell>
+                                                  <TableCell>Zip</TableCell>
+                                                  <TableCell>Skills</TableCell>
+                                                  <TableCell>Preferences</TableCell>
+                                                  <TableCell>Availability</TableCell>
+                                                  <TableCell>Action</TableCell>
+                                              </TableRow>
+                                          </TableHead>
+                                          <TableBody>
+                                              {eventMatches.map((m) => {
+                                                  const volunteer = volunteers.find(v => v.uid === m.uid);
+
+                                                  return volunteer ? (
+                                                      <TableRow key={m.uid}>
+                                                          <TableCell>{volunteer.profile?.fullName || 'N/A'}</TableCell>
+                                                          <TableCell>{volunteer.profile?.address1 || 'N/A'}</TableCell>
+                                                          <TableCell>{volunteer.profile?.city || 'N/A'}</TableCell>
+                                                          <TableCell>{volunteer.profile?.state || 'N/A'}</TableCell>
+                                                          <TableCell>{volunteer.profile?.zipCode || 'N/A'}</TableCell>
+                                                          <TableCell>{volunteer.profile?.skills?.join(', ') || 'N/A'}</TableCell>
+                                                          <TableCell>{volunteer.profile?.preferences || 'N/A'}</TableCell>
+                                                          <TableCell>{Array.isArray(volunteer.profile?.availability) ? volunteer.profile.availability.join(', ') : 'N/A'}</TableCell>
+                                                          <TableCell>
+                                                              <Button
+                                                                  variant="outlined"
+                                                                  color="error"
+                                                                  onClick={() => handleRemoveMatch(m.uid, m.eventid)}
+                                                              >
+                                                                  Unmatch
+                                                              </Button>
+                                                          </TableCell>
+                                                      </TableRow>
+                                                  ) : (
+                                                      <TableRow key={m.uid}>
+                                                          <TableCell colSpan={9}>Volunteer details not found for UID: {m.uid}</TableCell>
+                                                      </TableRow>
+                                                  );
+                                              })}
+                                          </TableBody>
+                                      </Table>
+                                  </TableContainer>
+                              </Box>
+                          </Box>
+                      );
+                  })}
+              </div>
+          )}
       </Box>
     </Box>
   );
