@@ -1,15 +1,20 @@
 // Setup
 const supabase = require('../config/databaseBackend');
+const bcrypt = require('bcryptjs');
 
 
 class AuthService {
   // Register new user
   async registerUser(email, password, role = 'volunteer') {
     try {
-      // Insert user into Supabase
+      // Hash the password before storing
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Insert user into Supabase with hashed password
       const { data, error } = await supabase
         .from('usercredentials')
-        .insert([{ email, password, role }])
+        .insert([{ email, password: hashedPassword, role }])
         .select();
       if (error) {
         if (error.code === '23505') {
@@ -24,6 +29,26 @@ class AuthService {
     } catch (error) {
       console.error('Registration error: ', error);
       throw new Error('Registration failed');
+    }
+  }
+
+  // Verify password for login
+  async verifyPassword(email, password) {
+    try {
+      const user = await this.getUserByEmail(email);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        throw new Error('Invalid password');
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Password verification error: ', error);
+      throw error;
     }
   }
 

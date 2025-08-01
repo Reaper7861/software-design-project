@@ -2,6 +2,7 @@
 const express = require('express')
 const {verifyToken} = require('../middleware/auth');
 const supabase = require('../config/databaseBackend');
+const bcrypt = require('bcryptjs');
 
 // New router instance
 const router = express.Router();
@@ -16,9 +17,30 @@ router.get('/profile', verifyToken, async (req, res) => {
       .select('*')
       .eq('uid', uid)
       .single();
-    if (error || !profile) {
-      return res.status(404).json({ error: 'User not found' });
+    
+    if (error && error.code === 'PGRST116') {
+      // No profile found, return empty profile
+      return res.json({ 
+        message: 'Token verified successfully', 
+        profile: {
+          uid: uid,
+          fullName: '',
+          address1: '',
+          address2: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          skills: [],
+          preferences: '',
+          availability: []
+        }
+      });
     }
+    
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+    
     return res.json({ message: 'Token verified successfully', profile });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch profile' });
@@ -51,6 +73,7 @@ router.post('/create-profile', verifyToken, async (req, res) => {
   const uid = req.user.uid;
   const email = req.user.email;
   const profileData = req.body;
+  const {password} = req.body; 
 
   try {
     // Insert into UserCredentials if not exists
@@ -61,9 +84,16 @@ router.post('/create-profile', verifyToken, async (req, res) => {
       .single();
 
     if (!existing) {
+      // Hash password if provided
+      let hashedPassword = '';
+      if (password) {
+        const saltRounds = 12;
+        hashedPassword = await bcrypt.hash(password, saltRounds);
+      }
+
       const { error: credError } = await supabase
         .from('usercredentials')
-        .insert([{ uid, email, password: '', role: 'volunteer' }]);
+        .insert([{ uid, email, password: hashedPassword, role: 'volunteer' }]);
       if (credError) {
         console.error('Error creating user credentials:', credError);
         return res.status(500).json({ error: 'Failed to create user credentials' });

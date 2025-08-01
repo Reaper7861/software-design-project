@@ -16,7 +16,7 @@ const requireAdmin = async (req, res, next) => {
   }
 
   // If not admin, return 403 (forbidden)
-  if (user.role !== 'administrator') {
+  if (user.role !== 'administrator' && user.role !== 'admin') {
     return res.status(403).json({ error: 'Access denied - administrators only.' });
   }
 

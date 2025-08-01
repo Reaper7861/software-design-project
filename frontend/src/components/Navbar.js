@@ -28,7 +28,7 @@ const Navbar = () => {
                         <Button component={Link} to="/history" color='beige'>Volunteer History</Button>
                     
                     {/* Administrator only */}
-                    {user.role === "administrator" && (
+                    {(user.role === "administrator" || user.role === "admin") && (
                         <>
                             <Button component={Link} to="/events" color='beige'>Event Management</Button>
                             <Button component={Link} to="/matching" color='beige'>Volunteer Match</Button>

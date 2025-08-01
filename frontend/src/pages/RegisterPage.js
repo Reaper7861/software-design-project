@@ -106,7 +106,10 @@ const RegisterPage = () => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ email: formData.email })
+                body: JSON.stringify({ 
+                    email: formData.email,
+                    password: formData.password // Send password for hashing
+                })
             });
 
 

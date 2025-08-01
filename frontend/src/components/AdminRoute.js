@@ -17,7 +17,7 @@ export const AdminRoute = ({children}) => {
     }
 
     // If logged in, but not admin, redirect to profile page (volunteers)
-    if(user.role !== "administrator"){
+    if(user.role !== "administrator" && user.role !== "admin"){
         return <Navigate to = "/profile" replace />;
     }
 
