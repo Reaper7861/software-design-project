@@ -11,6 +11,7 @@ const volunteerHistoryRoutes = require('./routes/volunteerHistoryRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const eventRoutes = require("./routes/eventRoutes");
 const matchingRoutes = require('./routes/matchingRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Create Express
 const app = express();
@@ -37,7 +38,8 @@ app.get('/', (req, res) => {
             events: '/api/events',
             matching: '/api/matching',
             notifications: '/api/notifications',
-            volunteerHistory: '/api/volunteer-history'
+            volunteerHistory: '/api/volunteer-history',
+            admin: 'api/admin'
         }
     });
 });
@@ -49,6 +51,7 @@ app.use('/api/volunteer-history', volunteerHistoryRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/api/events", eventRoutes);
 app.use('/api/matching', matchingRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // test-only error route for branch coverage

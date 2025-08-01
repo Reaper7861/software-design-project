@@ -17,6 +17,7 @@ import NotificationsPage from './pages/NotificationsPage'
 import HistoryPage from './pages/HistoryPage'
 import PhantomPage from './pages/PhantomPage'
 import Homepage from './pages/Homepage'
+import Dashboard from './pages/AdminDashboard'
 
 //theme for color across mui components
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -109,6 +110,11 @@ function App() {
           <Route path="/matching" element={
             <AdminRoute>
               <MatchPage />
+            </AdminRoute>
+            } />
+            <Route path="/dashboard" element={  //admin dashboard here
+            <AdminRoute>
+              <Dashboard />
             </AdminRoute>
             } />
         </Routes>

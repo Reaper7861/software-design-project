@@ -79,6 +79,7 @@ const Navbar = () => {
                         <>
                             <Button component={Link} to="/events" color='beige'>Event Management</Button>
                             <Button component={Link} to="/matching" color='beige'>Volunteer Match</Button>
+                            <Button component={Link} to="/dashboard" color='beige'>Dashboard</Button> 
                         </>
                     )}
                 </>
