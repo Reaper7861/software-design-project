@@ -8,13 +8,9 @@ import SendIcon from '@mui/icons-material/Send';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { messaging } from "../firebase";
 import { onMessage } from "firebase/messaging";
-import { getFcmToken } from '../utils/notifications';
 
 // TO DO //
-/* 
-notifications should be received as Assignments, Updates, or Reminders
-for event updates, volunteer matching, etc
-*/ 
+
 
 /// *Fix its* ///
 /*
@@ -25,6 +21,8 @@ date for message received and message sent are inconsistent
 
 const NotificationSystem = () => {
 
+  //sets up the inbox feed
+  const [notifications, setNotifications] = useState([]);
 //handles the subject+message content
   const [message, setMessage] = useState('');
   const [subject, setSubject] = useState('');
@@ -72,6 +70,46 @@ useEffect(() => {
   return () => unsubscribeAuth();
 }, []);
 
+
+//** Grab the inbox of notifications here**//
+useEffect(() => {
+  if (!user) return;  // do nothing if no logged-in user
+
+  const fetchNotifications = async () => {
+    try {
+      const idToken = await user.getIdToken();
+
+      const res = await fetch('http://localhost:8080/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch notifications');
+
+      const data = await res.json();
+
+      console.log("Raw notifications data from backend:", data);
+
+      const mappedNotifications = data.map(n => ({
+        ...n,
+        type: n.sender_uid === user.uid ? 'sent' : 'received',
+        name: n.sender_uid === user.uid
+          ? (n.receiver?.fullName || 'Recipient')
+          : (n.sender?.fullName || 'Sender'),
+        time: new Date(n.timestamp).toLocaleString(),
+      }));
+
+      setNotifications(mappedNotifications);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  fetchNotifications();
+}, [user]);
+
+
 /***** NOTIFICATION USER LIST OF VOLUNTEERS+ADMINS *****/
 //grabs all the users from the backend 
 useEffect(() => {
@@ -88,7 +126,7 @@ useEffect(() => {
 
       const data = await res.json();
       console.log('Fetched users:', data);
-      setVolunteerList(data); // Assuming backend returns array of { name, email, uid }
+      setVolunteerList(data); // backend returns array of { name, email, uid, fullName  }
     } catch (err) {
       console.error('Error fetching volunteers:', err);
     }
@@ -102,7 +140,9 @@ useEffect(() => {
 
 //handles the volunteer searchable dropdown
 const filteredVolunteers = volunteerList.filter(vol =>
-  vol.email  && vol.email.toLowerCase().includes(search.toLowerCase())
+  //filters names and emails
+  (vol.email && vol.email.toLowerCase().includes(search.toLowerCase())) ||
+  (vol.fullName && vol.fullName.toLowerCase().includes(search.toLowerCase()))
 );
   const handleSelectVolunteer = (vol) => {
     setSelectedVolunteer(vol);
@@ -178,19 +218,33 @@ useEffect(() => {
         throw new Error(errorData.error || 'Failed to send notification');
       }
 
-      setStatus(`Notification sent to ${selectedVolunteer.name}`);
+      setStatus(`Notification sent to ${selectedVolunteer.fullName}`);
 
-      const newNotification = {
-        type: 'sent',
-        name: selectedVolunteer.name,
-        email: selectedVolunteer.email,
-        subject,
-        message,
-        time: new Date().toLocaleString(),
-      };
-      
-      setSentNotifications((prev) => [newNotification, ...prev]);
+      // Refetch notifications to update inbox
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/notifications', {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+          },
+        });
+        if (!res.ok) throw new Error('Failed to fetch notifications');
+        const data = await res.json();
+        const mappedNotifications = data.map(n => ({
+          ...n,
+          type: n.sender_uid === user.uid ? 'sent' : 'received',
+          name: n.sender_uid === user.uid ? (n.receiver_name || 'Recipient') : (n.sender_name || 'Sender'),
+          time: new Date(n.timestamp).toLocaleString(),
+        }));
+        setNotifications(mappedNotifications);
+      } catch (err) {
+        console.error('Error fetching notifications:', err);
+      }
+    };
 
+    await fetchNotifications();
+
+    
       //clear everything after sending
       setMessage('');
       setOpen(false);
@@ -200,40 +254,6 @@ useEffect(() => {
     } catch (error) {
       setStatus(`Error: ${error.message}`);
   }}; 
-
-
-  ////////////FAKE DATA REPLACE LATER//////////////////////////////////
-  useEffect(() => {
-  const fakeData = [
-    {
-      type: 'received',
-      name: 'Jordan Smith',
-      email: 'jordan@example.com',
-      subject: 'Urgent Reminder',
-      message: 'Reminder: Please arrive 15 minutes early for the community clean-up.',
-      time: 'June 10, 2025, 9:00 AM'
-    },
-    {
-      type: 'received',
-      name: 'Ava Chen',
-      email: 'ava.chen@example.com',
-      subject: 'Assignment',
-      message: 'You’ve been assigned to the animal shelter event this Saturday.',
-      time: 'June 9, 2025, 4:45 PM'
-    },
-    {
-      type: 'received',
-      name: 'Liam Patel',
-      email: 'liam.patel@example.com',
-      subject: 'Thank you',
-      message: 'Thank you for volunteering at the food drive last week!',
-      time: 'June 8, 2025, 2:20 PM'
-    }
-  ];
-
-  setSentNotifications(fakeData);
-}, []);
-
 
 return (
 <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
@@ -314,13 +334,13 @@ return (
           </Typography>
 
           {(() => {
-  const filteredList = sentNotifications.filter(note =>
-    filterType === 'all' ? true : note.type === filterType
-  );
+  const filteredList = notifications.filter(note =>
+  filterType === 'all' ? true : note.type === filterType
+);
 
   return filteredList.length === 0 ? (
     <Typography variant="body1" sx={{ mt: 2 }}>
-      No {filterType} notifications.
+      No notifications yet.
     </Typography>
       ) : (
         <List>
@@ -370,6 +390,7 @@ return (
             }}
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 100)}
+            autoComplete="off"
             sx={{ my: 2 }}
           />
           {focused && (
@@ -379,7 +400,7 @@ return (
                   filteredVolunteers.map((vol, index) => (
                     <React.Fragment key={index}>
                       <ListItem button onClick={() => handleSelectVolunteer(vol)}>
-                        <ListItemText primary={vol.email} secondary={vol.email} />
+                        <ListItemText primary={vol.fullName} secondary={vol.email} />
                       </ListItem>
                       <Divider />
                     </React.Fragment>
@@ -396,7 +417,7 @@ return (
           {selectedVolunteer && (
             <Typography sx={{ mb: 2 }}>
               
-              <strong>Selected:</strong> {selectedVolunteer.email} ({selectedVolunteer.email})
+              <strong>Selected:</strong> {selectedVolunteer.fullName} ({selectedVolunteer.email})
             </Typography>
           )}
 
