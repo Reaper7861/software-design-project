@@ -75,6 +75,8 @@ router.post('/create-profile', verifyToken, async (req, res) => {
   const profileData = req.body;
   const {password} = req.body; 
 
+  console.log('Create profile request:', { uid, email, hasPassword: !!password });
+
   try {
     // Insert into UserCredentials if not exists
     const { data: existing, error: findError } = await supabase
@@ -82,6 +84,8 @@ router.post('/create-profile', verifyToken, async (req, res) => {
       .select('uid')
       .eq('uid', uid)
       .single();
+
+    console.log('Existing user check:', { existing, findError });
 
     if (!existing) {
       // Hash password if provided
@@ -91,12 +95,15 @@ router.post('/create-profile', verifyToken, async (req, res) => {
         hashedPassword = await bcrypt.hash(password, saltRounds);
       }
 
+      console.log('Creating user credentials with uid:', uid);
+
       const { error: credError } = await supabase
         .from('usercredentials')
         .insert([{ uid, email, password: hashedPassword, role: 'volunteer' }]);
+      
       if (credError) {
         console.error('Error creating user credentials:', credError);
-        return res.status(500).json({ error: 'Failed to create user credentials' });
+        return res.status(500).json({ error: 'Failed to create user credentials', details: credError.message });
       }
     }
 

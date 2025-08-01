@@ -72,8 +72,14 @@ const ProfilePage = () => {
         setError('');
       } catch (err) {
         console.error('Error fetching profile:', err);
+        if (err.response && err.response.status === 404) {
+          // Redirect to register if profile not found
+            navigate('/phantompage');
+            } else {
         setError('Failed to load profile.');
-      } finally {
+        }
+
+        } finally {
         setLoading(false);
       }
     });
