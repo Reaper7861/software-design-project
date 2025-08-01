@@ -1,11 +1,51 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Button } from '@mui/material'
 import { AuthContext } from "../contexts/AuthContext";
 import {Link} from 'react-router-dom';
+import { auth } from '../firebase';
 
 // Displays title and navigation buttons
 const Navbar = () => {
     const {user, logout} = useContext(AuthContext);
+    const [profileCompleted, setProfileCompleted] = useState(null);
+
+    useEffect(() => {
+        const checkProfileStatus = async () => {
+            if (!user) {
+                setProfileCompleted(null);
+                return;
+            }
+
+            try {
+                const currentUser = auth.currentUser;
+                if (!currentUser) {
+                    setProfileCompleted(null);
+                    return;
+                }
+
+                const idToken = await currentUser.getIdToken();
+                const response = await fetch('http://localhost:8080/api/users/profile-status', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setProfileCompleted(data.profileCompleted);
+                } else {
+                    setProfileCompleted(false);
+                }
+            } catch (error) {
+                console.error('Error checking profile status:', error);
+                setProfileCompleted(false);
+            }
+        };
+
+        checkProfileStatus();
+    }, [user]);
 
     return (
         <nav style={styles.navbarOuter}>
@@ -23,12 +63,19 @@ const Navbar = () => {
                 {user && (
                     <>
                         {/* Primary app functionality buttons */}
-                        <Button component={Link} to="/profile" color='beige'>Profile</Button>
+                        <Button 
+                            component={Link} 
+                            to="/profile" 
+                            color='beige'
+                            style={profileCompleted === false ? styles.incompleteProfile : {}}
+                        >
+                            Profile {profileCompleted === false && <span style={styles.warning}>⚠</span>}
+                        </Button>
                         <Button component={Link} to="/notifications" color='beige'>Notifications</Button>
                         <Button component={Link} to="/history" color='beige'>Volunteer History</Button>
                     
                     {/* Administrator only */}
-                    {user.role === "administrator" && (
+                    {(user.role === "administrator" || user.role === "admin") && (
                         <>
                             <Button component={Link} to="/events" color='beige'>Event Management</Button>
                             <Button component={Link} to="/matching" color='beige'>Volunteer Match</Button>
@@ -50,7 +97,7 @@ const Navbar = () => {
                 )}
             </div>
             </div>
-    </nav>
+        </nav>
     );
 };
 
@@ -60,7 +107,7 @@ const styles = {
     navbarOuter: {
         backgroundColor: '#483C32',
         color: '#F4F5DC',
-        fontFamily: 'Segoe UI'
+        fontFamily: 'Roboto' // Changed font
     },
 
     titleContainer: {
@@ -95,35 +142,24 @@ const styles = {
         display: 'flex',
         gap: '1rem'
     },
-
-    // Flexbox container
-    // container: {
-    //     display: 'flex',
-    //     flexDirection: 'column',
-    //     alignItems: 'center',
-    //     gap: '1rem'
-    // },
-
-    // App title 
+    
     title: {
         margin: 0,
         textAlign: 'center',
+        padding: '0.5rem 0',
         fontSize: '35px'
     },
 
-    // Button container(s)
-    // buttonContainer: {
-    //     display: 'flex',
-    //     gap: '1rem',
-    //     flexWrap: 'wrap',
-    //     justifyContent: 'center'
-    // },
+    incompleteProfile: {
+        color: '#ff6b6b',
+        fontWeight: 'bold',
+    },
 
-    // Button styling
-    // button: {
-    //     color: 'white',
-    //     borderColor: 'white'
-    // }
-}
+    warning: {
+        color: '#ff6b6b',
+        fontSize: '1.2em',
+        marginLeft: '0.25rem'
+    }
+};
 
 export default Navbar;

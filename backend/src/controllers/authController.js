@@ -8,6 +8,14 @@ class AuthController {
         try {
             const {email, password} = req.body;
 
+            // Validate that password is provided
+            if (!password) {
+                return res.status(400).json({
+                    error: 'Registration failed',
+                    message: 'Password is required'
+                });
+            }
+
             const result = await authService.registerUser(email, password);
 
             res.status(201).json({

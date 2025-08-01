@@ -2,6 +2,7 @@
 const express = require('express')
 const {verifyToken} = require('../middleware/auth');
 const supabase = require('../config/databaseBackend');
+const bcrypt = require('bcryptjs');
 
 // New router instance
 const router = express.Router();
@@ -16,12 +17,71 @@ router.get('/profile', verifyToken, async (req, res) => {
       .select('*')
       .eq('uid', uid)
       .single();
-    if (error || !profile) {
-      return res.status(404).json({ error: 'User not found' });
+    
+    if (error && error.code === 'PGRST116') {
+      // No profile found, return empty profile
+      return res.json({ 
+        message: 'Token verified successfully', 
+        profile: {
+          uid: uid,
+          fullName: '',
+          address1: '',
+          address2: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          skills: [],
+          preferences: '',
+          availability: [],
+          profileCompleted: false
+        }
+      });
     }
+    
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+    
     return res.json({ message: 'Token verified successfully', profile });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+// GET: Check if user profile is completed
+router.get('/profile-status', verifyToken, async (req, res) => {
+  const uid = req.user.uid;
+  try {
+    const { data: profile, error } = await supabase
+      .from('userprofile')
+      .select('fullName, address1, city, state, zipCode, skills, availability')
+      .eq('uid', uid)
+      .single();
+    
+    if (error && error.code === 'PGRST116') {
+      // No profile found
+      return res.json({ profileCompleted: false });
+    }
+    
+    if (error) {
+      return res.status(500).json({ error: 'Failed to check profile status' });
+    }
+    
+    // Check if all required fields are filled
+    const isCompleted = profile && 
+      profile.fullName && 
+      profile.address1 && 
+      profile.city && 
+      profile.state && 
+      profile.zipCode && 
+      profile.skills && 
+      profile.skills.length > 0 && 
+      profile.availability && 
+      profile.availability.length > 0;
+    
+    return res.json({ profileCompleted: !!isCompleted });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to check profile status' });
   }
 });
 
@@ -51,6 +111,9 @@ router.post('/create-profile', verifyToken, async (req, res) => {
   const uid = req.user.uid;
   const email = req.user.email;
   const profileData = req.body;
+  const {password} = req.body; 
+
+  console.log('Create profile request:', { uid, email, hasPassword: !!password });
 
   try {
     // Insert into UserCredentials if not exists
@@ -60,20 +123,36 @@ router.post('/create-profile', verifyToken, async (req, res) => {
       .eq('uid', uid)
       .single();
 
+    console.log('Existing user check:', { existing, findError });
+
     if (!existing) {
+      // Hash password if provided
+      let hashedPassword = '';
+      if (password) {
+        const saltRounds = 12;
+        hashedPassword = await bcrypt.hash(password, saltRounds);
+      }
+
+      console.log('Creating user credentials with uid:', uid);
+
       const { error: credError } = await supabase
         .from('usercredentials')
-        .insert([{ uid, email, password: '', role: 'volunteer' }]);
+        .insert([{ uid, email, password: hashedPassword, role: 'volunteer' }]);
+      
       if (credError) {
         console.error('Error creating user credentials:', credError);
-        return res.status(500).json({ error: 'Failed to create user credentials' });
+        return res.status(500).json({ error: 'Failed to create user credentials', details: credError.message });
       }
     }
 
-    // Upsert UserProfile
+    // Upsert UserProfile with profileCompleted flag
     const { error: profileError } = await supabase
       .from('userprofile')
-      .upsert([{ uid, ...profileData }], { onConflict: ['uid'] });
+      .upsert([{ 
+        uid, 
+        ...profileData, 
+        profileCompleted: true // Mark as completed when form is submitted
+      }], { onConflict: ['uid'] });
 
     if (profileError) {
       console.error('Error creating/updating profile:', profileError);
@@ -86,7 +165,6 @@ router.post('/create-profile', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to create/update profile' });
   }
 });
-
 
 // Export router
 module.exports = router;
