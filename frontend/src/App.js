@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import './App.css' // Import App.css for its appearance/styling
 import { AdminRoute } from './components/AdminRoute';
 import { PrivateRoute } from './components/PrivateRoute';
+import { ProfileRoute } from './components/ProfileRoute';
 
 // Import all page components
 import LoginPage from './pages/LoginPage'
@@ -85,19 +86,19 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={
-            <PrivateRoute>
+            <ProfileRoute>
               <ProfilePage />
-            </PrivateRoute>
+            </ProfileRoute>
           } />
           <Route path="/notifications" element={
-            <PrivateRoute>
+            <ProfileRoute>
               <NotificationsPage />
-            </PrivateRoute>
+            </ProfileRoute>
           } />
           <Route path="/history" element={
-            <PrivateRoute>
+            <ProfileRoute>
               <HistoryPage />
-            </PrivateRoute>
+            </ProfileRoute>
           } />
           <Route path="/phantompage" element={<PhantomPage />} />
           <Route path="/events" element={
