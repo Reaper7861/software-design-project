@@ -7,6 +7,7 @@ export const ProfileRoute = ({ children }) => {
   const { user } = useAuth();
   const [profileCompleted, setProfileCompleted] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     const checkProfileStatus = async () => {
@@ -34,13 +35,24 @@ export const ProfileRoute = ({ children }) => {
         if (response.ok) {
           const data = await response.json();
           setProfileCompleted(data.profileCompleted);
+          
+          // Show error message if profile is not completed
+          if (!data.profileCompleted) {
+            setShowError(true);
+            // Auto-hide error after 3 seconds and redirect
+            setTimeout(() => {
+              setShowError(false);
+            }, 3000);
+          }
         } else {
           console.error('Failed to check profile status');
           setProfileCompleted(false);
+          setShowError(true);
         }
       } catch (error) {
         console.error('Error checking profile status:', error);
         setProfileCompleted(false);
+        setShowError(true);
       } finally {
         setLoading(false);
       }
@@ -58,8 +70,41 @@ export const ProfileRoute = ({ children }) => {
   }
 
   if (!profileCompleted) {
-    return <Navigate to="/phantompage" />;
+    return (
+      <>
+        {showError && (
+          <div style={styles.errorContainer}>
+            <div style={styles.errorMessage}>
+              <h3>⚠️ Profile Incomplete</h3>
+              <p>You must complete your profile information before accessing this page.</p>
+              <p>Redirecting you to the profile completion form...</p>
+            </div>
+          </div>
+        )}
+        <Navigate to="/phantompage" />
+      </>
+    );
   }
 
   return children;
+};
+
+const styles = {
+  errorContainer: {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 1000,
+    backgroundColor: '#fff',
+    padding: '2rem',
+    borderRadius: '8px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+    border: '2px solid #ff6b6b',
+    maxWidth: '400px',
+    textAlign: 'center'
+  },
+  errorMessage: {
+    color: '#333'
+  }
 }; 

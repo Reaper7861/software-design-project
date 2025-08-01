@@ -202,9 +202,7 @@ const PhantomPage = () => {
                 
                 <div style={styles.infoBox}>
                     <p style={styles.infoText}>
-                        <strong>Welcome!</strong> To access all features of the volunteer platform, 
-                        you must complete your profile information below. This helps us match you 
-                        with the right volunteer opportunities.
+                        <strong>Welcome!</strong> Please fill out the form below to complete your profile and gain full access to the volunteer platform!
                     </p>
                 </div>
 
