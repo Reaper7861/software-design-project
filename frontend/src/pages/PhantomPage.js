@@ -184,7 +184,7 @@ const PhantomPage = () => {
           const updatedProfile = await res.json();
           console.log('Profile updated:', updatedProfile);
       
-          navigate('/events');
+          navigate('/profile');
         } catch (err) {
           console.error('Profile update failed:', err);
           setError(err.message || 'Update failed. Please try again.');
@@ -198,7 +198,15 @@ const PhantomPage = () => {
     return (
         <div style={styles.container}>
             <div style={styles.card}>
-                <h2 style={styles.title}>Profile</h2>
+                <h2 style={styles.title}>Complete Your Profile</h2>
+                
+                <div style={styles.infoBox}>
+                    <p style={styles.infoText}>
+                        <strong>Welcome!</strong> To access all features of the volunteer platform, 
+                        you must complete your profile information below. This helps us match you 
+                        with the right volunteer opportunities.
+                    </p>
+                </div>
 
                 {error && <div style={styles.error}>{error}</div>}
 
@@ -568,6 +576,21 @@ const PhantomPage = () => {
             borderRadius: '4px',
             marginBottom: '1rem',
             border: '1px solid #f5c6cb'
+        },
+
+        infoBox: {
+            backgroundColor: '#e8f4fd',
+            border: '1px solid #bee5eb',
+            borderRadius: '4px',
+            padding: '1rem',
+            marginBottom: '1.5rem'
+        },
+
+        infoText: {
+            margin: '0',
+            color: '#0c5460',
+            fontSize: '0.9rem',
+            lineHeight: '1.4'
         },
     
         linkText: {

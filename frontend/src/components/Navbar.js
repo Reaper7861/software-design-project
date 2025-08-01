@@ -1,11 +1,51 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Button } from '@mui/material'
 import { AuthContext } from "../contexts/AuthContext";
 import {Link} from 'react-router-dom';
+import { auth } from '../firebase';
 
 // Displays title and navigation buttons
 const Navbar = () => {
     const {user, logout} = useContext(AuthContext);
+    const [profileCompleted, setProfileCompleted] = useState(null);
+
+    useEffect(() => {
+        const checkProfileStatus = async () => {
+            if (!user) {
+                setProfileCompleted(null);
+                return;
+            }
+
+            try {
+                const currentUser = auth.currentUser;
+                if (!currentUser) {
+                    setProfileCompleted(null);
+                    return;
+                }
+
+                const idToken = await currentUser.getIdToken();
+                const response = await fetch('http://localhost:8080/api/users/profile-status', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setProfileCompleted(data.profileCompleted);
+                } else {
+                    setProfileCompleted(false);
+                }
+            } catch (error) {
+                console.error('Error checking profile status:', error);
+                setProfileCompleted(false);
+            }
+        };
+
+        checkProfileStatus();
+    }, [user]);
 
     return (
         <nav style={styles.navbarOuter}>
@@ -23,7 +63,14 @@ const Navbar = () => {
                 {user && (
                     <>
                         {/* Primary app functionality buttons */}
-                        <Button component={Link} to="/profile" color='beige'>Profile</Button>
+                        <Button 
+                            component={Link} 
+                            to="/profile" 
+                            color='beige'
+                            style={profileCompleted === false ? styles.incompleteProfile : {}}
+                        >
+                            Profile {profileCompleted === false && <span style={styles.warning}>⚠</span>}
+                        </Button>
                         <Button component={Link} to="/notifications" color='beige'>Notifications</Button>
                         <Button component={Link} to="/history" color='beige'>Volunteer History</Button>
                     
@@ -50,7 +97,7 @@ const Navbar = () => {
                 )}
             </div>
             </div>
-    </nav>
+        </nav>
     );
 };
 
@@ -99,9 +146,20 @@ const styles = {
     title: {
         margin: 0,
         textAlign: 'center',
-        fontSize: '35px',
-        fontFamily: 'Roboto' // Changed font
+        padding: '0.5rem 0',
+        fontSize: '35px'
     },
-}
+
+    incompleteProfile: {
+        color: '#ff6b6b',
+        fontWeight: 'bold',
+    },
+
+    warning: {
+        color: '#ff6b6b',
+        fontSize: '1.2em',
+        marginLeft: '0.25rem'
+    }
+};
 
 export default Navbar;

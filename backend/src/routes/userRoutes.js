@@ -32,7 +32,8 @@ router.get('/profile', verifyToken, async (req, res) => {
           zipCode: '',
           skills: [],
           preferences: '',
-          availability: []
+          availability: [],
+          profileCompleted: false
         }
       });
     }
@@ -44,6 +45,43 @@ router.get('/profile', verifyToken, async (req, res) => {
     return res.json({ message: 'Token verified successfully', profile });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+// GET: Check if user profile is completed
+router.get('/profile-status', verifyToken, async (req, res) => {
+  const uid = req.user.uid;
+  try {
+    const { data: profile, error } = await supabase
+      .from('userprofile')
+      .select('fullName, address1, city, state, zipCode, skills, availability')
+      .eq('uid', uid)
+      .single();
+    
+    if (error && error.code === 'PGRST116') {
+      // No profile found
+      return res.json({ profileCompleted: false });
+    }
+    
+    if (error) {
+      return res.status(500).json({ error: 'Failed to check profile status' });
+    }
+    
+    // Check if all required fields are filled
+    const isCompleted = profile && 
+      profile.fullName && 
+      profile.address1 && 
+      profile.city && 
+      profile.state && 
+      profile.zipCode && 
+      profile.skills && 
+      profile.skills.length > 0 && 
+      profile.availability && 
+      profile.availability.length > 0;
+    
+    return res.json({ profileCompleted: !!isCompleted });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to check profile status' });
   }
 });
 
@@ -107,10 +145,14 @@ router.post('/create-profile', verifyToken, async (req, res) => {
       }
     }
 
-    // Upsert UserProfile
+    // Upsert UserProfile with profileCompleted flag
     const { error: profileError } = await supabase
       .from('userprofile')
-      .upsert([{ uid, ...profileData }], { onConflict: ['uid'] });
+      .upsert([{ 
+        uid, 
+        ...profileData, 
+        profileCompleted: true // Mark as completed when form is submitted
+      }], { onConflict: ['uid'] });
 
     if (profileError) {
       console.error('Error creating/updating profile:', profileError);
@@ -123,7 +165,6 @@ router.post('/create-profile', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to create/update profile' });
   }
 });
-
 
 // Export router
 module.exports = router;
