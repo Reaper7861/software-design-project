@@ -1,9 +1,0 @@
-const fcmTokens = {
-  '92Gc2Al6jhV74vl1yiMJTd0nu1o2': 'cl3RvjTgPJbUcv9A8qWiAM:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw',
-  'AwOzAjY3eTdSvG8aXVv8GPQ7Rjv2': 'cl3RvjTgPJbUcv9A8qWiAM:APA91bFjpCP749Q5UDJUBIPitF5ZJe63n8od-29jMMnJO92dR5-5oN4w7U8HdYmrpRvRKEs0B8mHxjajVAsmoMoiMm9o9-YCwps9n9vnPAMOa49hp17NLVw',
-  'b9YNzkWjYhVOqAP9b8TlCae0qGF2': 'cen43SKh4o_XZPgz33AyoO:APA91bEbR8N3oDjbT5PcgYl6o79OUvCl_4qbuIgd0c4bara3HWg2Tp4Cw6BldVN6sQsEe_Hbfo3-k8-k_0X0G7Dz5WFQR_-r7eySKA3CLJOsZcrUexzFokM',
-};
-
-module.exports = {
-  fcmTokens,
-};
