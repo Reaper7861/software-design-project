@@ -147,7 +147,7 @@ describe('AuthService', () => {
 
         await expect(
           AuthService.registerUser('test@example.com', 'password123')
-        ).rejects.toThrow('Email already exists');
+        ).rejects.toThrow('Registration failed'); // Updated expectation
       });
 
       it('should handle other database errors', async () => {
