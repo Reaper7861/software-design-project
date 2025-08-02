@@ -12,18 +12,20 @@ const MatchPage = () => {
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [matches, setMatches] = useState([]);
-  //keeps track of the user so that we can send notifs
+
+  const [currentVolunteerPage, setCurrentVolunteerPage] = useState(1);
+  const [currentEventPage, setCurrentEventPage] = useState(1);
+
+  const itemsPerPage = 4;
   const [user, setUser] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // GET volunteers and matches
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
         setVolunteers(volunteerRes.data.volunteers);
         setMatches(volunteerRes.data.matches || []);
 
-        // GET events
         const eventRes = await axios.get('http://localhost:8080/api/events');
         setEvents(eventRes.data.events.filter((e) => e.status !== 'deleted'));
       } catch (err) {
@@ -34,23 +36,17 @@ const MatchPage = () => {
     fetchData();
   }, []);
 
-  //** User authentication here **//
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(getAuth(), (user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        setUser(null);
-      }
+      setUser(user || null);
     });
 
     return () => unsubscribeAuth();
   }, []);
 
-    const handleCreateMatch = async () => {
+  const handleCreateMatch = async () => {
     if (!selectedVolunteer || !selectedEvent) return;
 
-    // Check if the volunteer is already matched to the event
     const alreadyMatched = matches.some(
       (m) => m.uid === selectedVolunteer.uid && m.eventid === selectedEvent.eventid
     );
@@ -68,13 +64,10 @@ const MatchPage = () => {
 
       if (res.data.success) {
         alert('Match successful!');
-        // Refresh matches after successful match
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
         setMatches(volunteerRes.data.matches || []);
 
-        // *** send the notification to volunteer here - start*** //
         const idToken = await user.getIdToken();
-        console.log("User uid: ", selectedVolunteer.uid);
 
         await fetch('http://localhost:8080/api/notifications/send', {
           method: 'POST',
@@ -112,8 +105,7 @@ const MatchPage = () => {
         //** Send notification to volunteer about removal **//
         try {
           const idToken = await user.getIdToken();
-
-          const messageRes = await fetch('http://localhost:8080/api/notifications/send', {
+          await fetch('http://localhost:8080/api/notifications/send', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -125,18 +117,9 @@ const MatchPage = () => {
               body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`,
             }),
           });
-
-          const messageData = await messageRes.json();
-
-          if (!messageData.success) {
-            console.warn('Notification sending failed:', messageData.error);
-          }
         } catch (notifError) {
           console.error('Error sending notification:', notifError);
         }
-        /** End notification stuff **/
-
-        // Refresh matches after successful unmatch
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
         setMatches(volunteerRes.data.matches || []);
       } else {
@@ -148,107 +131,160 @@ const MatchPage = () => {
     }
   };
 
+  const indexOfLastVolunteer = currentVolunteerPage * itemsPerPage;
+  const indexOfFirstVolunteer = indexOfLastVolunteer - itemsPerPage;
+  const paginatedVolunteers = volunteers.slice(indexOfFirstVolunteer, indexOfLastVolunteer);
+
+  const indexOfLastEvent = currentEventPage * itemsPerPage;
+  const indexOfFirstEvent = indexOfLastEvent - itemsPerPage;
+  const paginatedEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
+
+  const totalPagesVolunteers = Math.ceil(volunteers.length / itemsPerPage);
+  const totalPagesEvents = Math.ceil(events.length / itemsPerPage);
+
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
       <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
         Volunteer Matching
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {/* Volunteer Table */}
-        <TableContainer component={Paper} sx={{ flex: '1 1 500px' }}>
+        <TableContainer component={Paper} sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
           <Typography variant="h6" sx={{ p: 1 }}>
             Volunteers
           </Typography>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Address</TableCell>
-                <TableCell>City</TableCell>
-                <TableCell>State</TableCell>
-                <TableCell>Zip</TableCell>
-                <TableCell>Skills</TableCell>
-                <TableCell>Preferences</TableCell>
-                <TableCell>Availability</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {volunteers.map((v) => (
-                <TableRow
-                  key={v.uid}
-                  hover
-                  selected={selectedVolunteer?.uid === v.uid}
-                  onClick={() => setSelectedVolunteer(selectedVolunteer?.uid === v.uid ? null : v)}
-                  sx={{
-                    cursor: 'pointer',
-                    backgroundColor: selectedVolunteer?.uid === v.uid ? '#adadadff' : 'inherit',
-                  }}
-                >
-                  <TableCell>{v.profile?.fullName}</TableCell>
-                  <TableCell>{v.profile?.address1}</TableCell>
-                  <TableCell>{v.profile?.city}</TableCell>
-                  <TableCell>{v.profile?.state}</TableCell>
-                  <TableCell>{v.profile?.zipCode}</TableCell>
-                  <TableCell>{v.profile?.skills?.join(', ')}</TableCell>
-                  <TableCell>{v.profile?.preferences}</TableCell>
-                  <TableCell>{Array.isArray(v.profile?.availability)
-                    ? v.profile.availability.join(', ')
-                    : Object.entries(v.profile?.availability || {})
-                        .filter(([_, available]) => available)
-                        .map(([day]) => day)
-                        .join(', ')
-                  }</TableCell>
+          <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Address</TableCell>
+                  <TableCell>City</TableCell>
+                  <TableCell>State</TableCell>
+                  <TableCell>Zip</TableCell>
+                  <TableCell>Skills</TableCell>
+                  <TableCell>Preferences</TableCell>
+                  <TableCell>Availability</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {paginatedVolunteers.map((v) => (
+                  <TableRow
+                    key={v.uid}
+                    hover
+                    selected={selectedVolunteer?.uid === v.uid}
+                    onClick={() => setSelectedVolunteer(selectedVolunteer?.uid === v.uid ? null : v)}
+                    sx={{
+                      cursor: 'pointer',
+                      backgroundColor: selectedVolunteer?.uid === v.uid ? '#adadadff' : 'inherit',
+                    }}
+                  >
+                    <TableCell>{v.profile?.fullName}</TableCell>
+                    <TableCell>{v.profile?.address1}</TableCell>
+                    <TableCell>{v.profile?.city}</TableCell>
+                    <TableCell>{v.profile?.state}</TableCell>
+                    <TableCell>{v.profile?.zipCode}</TableCell>
+                    <TableCell>{v.profile?.skills?.join(', ')}</TableCell>
+                    <TableCell>{v.profile?.preferences}</TableCell>
+                    <TableCell>{Array.isArray(v.profile?.availability)
+                      ? v.profile.availability.join(', ')
+                      : Object.entries(v.profile?.availability || {})
+                          .filter(([_, available]) => available)
+                          .map(([day]) => day)
+                          .join(', ')
+                    }</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, p: 1 }}>
+            <Button
+              variant='contained'
+              disabled={currentVolunteerPage === 1}
+              onClick={() => setCurrentVolunteerPage(prev => prev - 1)}
+            >
+              Previous
+            </Button>
+            <Typography sx={{ alignSelf: 'center' }}>
+              Page {currentVolunteerPage} of {totalPagesVolunteers}
+            </Typography>
+            <Button
+              variant='contained'
+              disabled={currentVolunteerPage === totalPagesVolunteers}
+              onClick={() => setCurrentVolunteerPage(prev => prev + 1)}
+            >
+              Next
+            </Button>
+          </Box>
         </TableContainer>
 
         {/* Events Table */}
-        <TableContainer component={Paper} sx={{ flex: '1 1 500px' }}>
+        <TableContainer component={Paper} sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
           <Typography variant="h6" sx={{ p: 1 }}>
             Events
           </Typography>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Event ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Required Skills</ TableCell>
-                <TableCell>Urgency</TableCell>
-                <TableCell>Date</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {events.map((e) => (
-                <TableRow
-                  key={e.eventid}
-                  hover
-                  selected={selectedEvent?.eventid === e.eventid}
-                  onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
-                  sx={{
-                    cursor: 'pointer',
-                    backgroundColor: selectedEvent?.eventid === e.eventid ? '#e0f7fa' : 'inherit',
-                  }}
-                >
-                  <TableCell>{e.eventid}</TableCell>
-                  <TableCell>{e.eventname}</TableCell>
-                  <TableCell>{e.eventdescription}</TableCell>
-                  <TableCell>{e.location}</TableCell>
-                  <TableCell>{Array.isArray(e.requiredskills) ? e.requiredskills.join(', ') : e.requiredskills}</TableCell>
-                  <TableCell>{e.urgency}</TableCell>
-                  <TableCell>{e.eventdate}</TableCell>
+          <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Event ID</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Description</TableCell>
+                  <TableCell>Location</TableCell>
+                  <TableCell>Required Skills</TableCell>
+                  <TableCell>Urgency</TableCell>
+                  <TableCell>Date</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {paginatedEvents.map((e) => (
+                  <TableRow
+                    key={e.eventid}
+                    hover
+                    selected={selectedEvent?.eventid === e.eventid}
+                    onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
+                    sx={{
+                      cursor: 'pointer',
+                      backgroundColor: selectedEvent?.eventid === e.eventid ? '#e0f7fa' : 'inherit',
+                    }}
+                  >
+                    <TableCell>{e.eventid}</TableCell>
+                    <TableCell>{e.eventname}</TableCell>
+                    <TableCell>{e.eventdescription}</TableCell>
+                    <TableCell>{e.location}</TableCell>
+                    <TableCell>{Array.isArray(e.requiredskills) ? e.requiredskills.join(', ') : e.requiredskills}</TableCell>
+                    <TableCell>{e.urgency}</TableCell>
+                    <TableCell>{e.eventdate}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, p: 1 }}>
+            <Button
+              variant='contained'
+              disabled={currentEventPage === 1}
+              onClick={() => setCurrentEventPage(prev => prev - 1)}
+            >
+              Previous
+            </Button>
+            <Typography sx={{ alignSelf: 'center' }}>
+              Page {currentEventPage} of {totalPagesEvents}
+            </Typography>
+            <Button
+              variant='contained'
+              disabled={currentEventPage === totalPagesEvents}
+              onClick={() => setCurrentEventPage(prev => prev + 1)}
+            >
+              Next
+            </Button>
+          </Box>
         </TableContainer>
       </Box>
 
-      {/* Match button */}
+      {/* Match Button */}
       <Box sx={{ mt: 2 }}>
         <Button
           variant="contained"
@@ -259,7 +295,7 @@ const MatchPage = () => {
         </Button>
       </Box>
 
-      {/* Existing Matches Section */}
+      {/* Existing Matches */}
 
       <Box sx={{ mt: 3 }}>
           <Typography variant="h6" sx={{ color: 'white' }}>Existing Matches</Typography>
