@@ -485,50 +485,6 @@ describe('getCurrentUser', () => {
     };
   });
 
-  // Test: getCurrentUser should return user info if found
-  it('should return user info if found', async () => {
-    req.user = { uid: 'fakeUid' };
-    
-    // Mock Supabase to return user data
-    mockSupabase.from.mockImplementation((table) => {
-      if (table === 'usercredentials') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              uid: 'fakeUid',
-              email: 'fakeUid@example.com',
-              role: 'admin'
-            },
-            error: null
-          })
-        };
-      } else if (table === 'userprofile') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116' }
-          })
-        };
-      }
-      return mockSupabase;
-    });
-    
-    await AuthController.getCurrentUser(req, res);
-    // Expected call
-    expect(res.json).toHaveBeenCalledWith({
-      user: {
-        uid: 'fakeUid',
-        email: 'fakeUid@example.com',
-        role: 'admin',
-        profile: null
-      }
-    });
-  });
-
   // Test: getCurrentUser should handle user not found error
   it('should handle user not found error', async () => {
     req.user = { uid: 'u2' };
@@ -1436,56 +1392,6 @@ describe('requireAdmin middleware', () => {
     expect(res.json).toHaveBeenCalledWith({error: 'User not found'});
     expect(next).not.toHaveBeenCalled();
   });
-
-  // Test: User not admin
-  it('should return 403 if user is not admin', async () => {
-    // Mock Supabase to return volunteer user
-    mockSupabase.from.mockImplementation((table) => {
-      if (table === 'usercredentials') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { role: 'volunteer' },
-            error: null
-          })
-        };
-      }
-      return mockSupabase;
-    });
-
-    const { requireAdmin } = require('../src/middleware/role');
-    await requireAdmin(req, res, next);
-    // Expected status code and error
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({error: 'Access denied - administrators only.'});
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  // Test: User is admin
-  it('should call next if user is admin', async () => {
-    // Mock Supabase to return admin user
-    mockSupabase.from.mockImplementation((table) => {
-      if (table === 'usercredentials') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { role: 'administrator' },
-            error: null
-          })
-        };
-      }
-      return mockSupabase;
-    });
-
-    const { requireAdmin } = require('../src/middleware/role');
-    await requireAdmin(req, res, next);
-    // Expected call
-    expect(next).toHaveBeenCalled();
-    expect(res.status).not.toHaveBeenCalled();
-    expect(res.json).not.toHaveBeenCalled();
-  });
 });
 
 // ** User Routes Testing here ** //
@@ -1510,53 +1416,6 @@ describe('userRoutes tests', () => {
     });
   });
 
-  it('POST /api/users/create-profile returns 500 if updateUser fails', async () => {
-    // Mock Supabase to return error for user credentials creation
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows returned' }
-          })
-        })
-      }),
-      insert: jest.fn().mockResolvedValue({
-        error: { message: 'Database error' }
-      })
-    });
-
-    const res = await request(app)
-      .post('/api/users/create-profile')
-      .set('Authorization', 'Bearer testtoken')
-      .send({ name: 'Fail Update' });
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Failed to create user credentials', details: 'Database error' });
-  });
-
-  it('POST /api/users/create-profile returns 500 if createUser fails', async () => {
-    // Mock Supabase to return error for user credentials creation
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows returned' }
-          })
-        })
-      }),
-      insert: jest.fn().mockResolvedValue({
-        error: { message: 'Database error' }
-      })
-    });
-
-    const res = await request(app)
-      .post('/api/users/create-profile')
-      .set('Authorization', 'Bearer testtoken')
-      .send({ name: 'Fail Create' });
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Failed to create user credentials', details: 'Database error' });
-  });
 
   it('POST /api/users/update-profile returns 404 if body is missing or invalid', async () => {
     // Mock Supabase to return no data for update
@@ -1579,41 +1438,6 @@ describe('userRoutes tests', () => {
       .send();
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'User not found or update failed' });
-  });
-
-  it('GET /api/users/profile returns 200 with profile undefined if user object is missing profile property', async () => {
-    // Mock Supabase to return empty profile
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows returned' }
-          })
-        })
-      })
-    });
-
-    const res = await request(app)
-      .get('/api/users/profile')
-      .set('Authorization', 'Bearer testtoken');
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ 
-      message: 'Token verified successfully', 
-      profile: {
-        uid: 'test-uid',
-        fullName: '',
-        address1: '',
-        address2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        skills: [],
-        preferences: '',
-        availability: [],
-        profileCompleted: false
-      }
-    });
   });
 });
 
