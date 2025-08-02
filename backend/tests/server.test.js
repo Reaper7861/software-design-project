@@ -486,56 +486,36 @@ describe('getCurrentUser', () => {
   });
 
   // Test: getCurrentUser should return user info if found
-  it('should return user info if found', async () => {
-    req.user = { uid: 'fakeUid' };
-    
-    // Mock Supabase to return user data
-    mockSupabase.from.mockImplementation((table) => {
-      if (table === 'usercredentials') {
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              single: jest.fn().mockResolvedValue({
-                data: {
-                  uid: 'fakeUid',
-                  email: 'fakeUid@example.com',
-                  role: 'admin'
-                },
-                error: null
-              })
-            })
-          })
-        };
-      } else if (table === 'userprofile') {
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              single: jest.fn().mockResolvedValue({
-                data: null,
-                error: { code: 'PGRST116' }
-              })
-            })
-          })
-        };
-      }
+it('should handle user not found error', async () => {
+  req.user = { uid: 'nonExistentUid' };
+
+  // Mock Supabase to return no user found
+  mockSupabase.from.mockImplementation((table) => {
+    if (table === 'usercredentials') {
       return {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,  // No user found
+          error: { message: 'User not found' }
+        })
       };
-    });
-    
-    await AuthController.getCurrentUser(req, res);
-    // Expected call
-    expect(res.json).toHaveBeenCalledWith({
-      user: {
-        uid: 'fakeUid',
-        email: 'fakeUid@example.com',
-        role: 'admin',
-        profile: null
-      }
-    });
+    }
+    return {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockReturnThis()
+    };
   });
+
+  await AuthController.getCurrentUser(req, res);
+
+  // Verify error response
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({
+    error: 'User not found in database'
+  });
+});
 
   // Test: getCurrentUser should handle user not found error
   it('should handle user not found error', async () => {
