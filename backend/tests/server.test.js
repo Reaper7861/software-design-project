@@ -486,36 +486,48 @@ describe('getCurrentUser', () => {
   });
 
   // Test: getCurrentUser should return user info if found
-it('should handle user not found error', async () => {
-  req.user = { uid: 'nonExistentUid' };
-
-  // Mock Supabase to return no user found
-  mockSupabase.from.mockImplementation((table) => {
-    if (table === 'usercredentials') {
-      return {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,  // No user found
-          error: { message: 'User not found' }
-        })
-      };
-    }
-    return {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockReturnThis()
-    };
+  it('should return user info if found', async () => {
+    req.user = { uid: 'fakeUid' };
+    
+    // Mock Supabase to return user data
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: {
+              uid: 'fakeUid',
+              email: 'fakeUid@example.com',
+              role: 'admin'
+            },
+            error: null
+          })
+        };
+      } else if (table === 'userprofile') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116' }
+          })
+        };
+      }
+      return mockSupabase;
+    });
+    
+    await AuthController.getCurrentUser(req, res);
+    // Expected call
+    expect(res.json).toHaveBeenCalledWith({
+      user: {
+        uid: 'fakeUid',
+        email: 'fakeUid@example.com',
+        role: 'admin',
+        profile: null
+      }
+    });
   });
-
-  await AuthController.getCurrentUser(req, res);
-
-  // Verify error response
-  expect(res.status).toHaveBeenCalledWith(404);
-  expect(res.json).toHaveBeenCalledWith({
-    error: 'User not found in database'
-  });
-});
 
   // Test: getCurrentUser should handle user not found error
   it('should handle user not found error', async () => {
@@ -1083,32 +1095,23 @@ describe("Volunteer History Route", () => {
     mockSupabase.from.mockImplementation((table) => {
       if (table === 'eventdetails') {
         return {
-          update: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              select: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
-                  data: {
-                    eventid: eventId,
-                    eventname: "Updated Event",
-                    eventdescription: "Test Description",
-                    eventdate: "2025-08-10",
-                    location: "Houston, TX",
-                    requiredskills: ["Teamwork"],
-                    urgency: "Low"
-                  },
-                  error: null
-                })
-              })
-            })
+          update: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          select: jest.fn().mockResolvedValue({
+            data: [{
+              eventid: eventId,
+              eventname: "Updated Event",
+              eventdescription: "Test Description",
+              eventdate: "2025-08-10",
+              location: "Houston, TX",
+              requiredskills: ["Teamwork"],
+              urgency: "Low"
+            }],
+            error: null
           })
         };
       }
-      return {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-      };
+      return mockSupabase;
     });
 
     // Update the event
@@ -1410,21 +1413,24 @@ describe('requireAdmin middleware', () => {
   });
 
   // Test: User not found
-  it('should return 404 if user not found', () => {
+  it('should return 404 if user not found', async () => {
     // Mock Supabase to return no user
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({
             data: null,
             error: { code: 'PGRST116', message: 'No rows returned' }
           })
-        })
-      })
+        };
+      }
+      return mockSupabase;
     });
 
     const { requireAdmin } = require('../src/middleware/role');
-    requireAdmin(req, res, next);
+    await requireAdmin(req, res, next);
     // Expected status code and error
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({error: 'User not found'});
@@ -1432,21 +1438,24 @@ describe('requireAdmin middleware', () => {
   });
 
   // Test: User not admin
-  it('should return 403 if user is not admin', () => {
+  it('should return 403 if user is not admin', async () => {
     // Mock Supabase to return volunteer user
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({
             data: { role: 'volunteer' },
             error: null
           })
-        })
-      })
+        };
+      }
+      return mockSupabase;
     });
 
     const { requireAdmin } = require('../src/middleware/role');
-    requireAdmin(req, res, next);
+    await requireAdmin(req, res, next);
     // Expected status code and error
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({error: 'Access denied - administrators only.'});
@@ -1454,21 +1463,24 @@ describe('requireAdmin middleware', () => {
   });
 
   // Test: User is admin
-  it('should call next if user is admin', () => {
+  it('should call next if user is admin', async () => {
     // Mock Supabase to return admin user
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
           single: jest.fn().mockResolvedValue({
             data: { role: 'administrator' },
             error: null
           })
-        })
-      })
+        };
+      }
+      return mockSupabase;
     });
 
     const { requireAdmin } = require('../src/middleware/role');
-    requireAdmin(req, res, next);
+    await requireAdmin(req, res, next);
     // Expected call
     expect(next).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalled();
