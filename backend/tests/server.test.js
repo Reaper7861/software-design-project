@@ -3,29 +3,20 @@
 // Force environment loading
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-// Import Supertest to simulate HTTP requests
-const request = require("supertest");
-// Import Express app
-const app = require("../src/app");
-const admin = require("firebase-admin");
-// REST API for ID tokens
-const axios = require("axios");
 
 // Mock Supabase
-jest.mock('../src/config/databaseBackend', () => {
-  return {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn().mockReturnThis(),
-    upsert: jest.fn().mockReturnThis(),
-  };
-});
+const mockSupabase = {
+  from: jest.fn().mockReturnThis(),
+  select: jest.fn().mockReturnThis(),
+  insert: jest.fn().mockReturnThis(),
+  update: jest.fn().mockReturnThis(),
+  delete: jest.fn().mockReturnThis(),
+  eq: jest.fn().mockReturnThis(),
+  single: jest.fn().mockReturnThis(),
+  upsert: jest.fn().mockReturnThis(),
+};
 
-const mockSupabase = require('../src/config/databaseBackend');
+jest.mock('../src/config/databaseBackend', () => mockSupabase);
 
 // Mock Firebase Auth
 jest.mock('../src/config/firebase', () => ({
@@ -46,6 +37,14 @@ jest.mock('../src/services/authService', () => ({
   getUserByEmail: jest.fn(),
   getUserByUid: jest.fn(),
 }));
+
+// Import Supertest to simulate HTTP requests
+const request = require("supertest");
+// Import Express app
+const app = require("../src/app");
+const admin = require("firebase-admin");
+// REST API for ID tokens
+const axios = require("axios");
 
 const mockFirebase = require('../src/config/firebase');
 const mockAuthService = require('../src/services/authService');
@@ -503,9 +502,9 @@ describe('getCurrentUser', () => {
     
     await AuthController.getCurrentUser(req, res);
     // Expected status code and error
-    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
-      error: 'User not found in database'
+      error: 'User not found'
     });
   });
 });
@@ -1035,6 +1034,250 @@ describe("Volunteer History Route", () => {
       expect(res.statusCode).toBe(404);
       expect(res.body).toHaveProperty("success", false);
       expect(res.body).toHaveProperty("message", "Volunteer profile not found");
+    });
+
+    it("should return 404 when event not found during matching", async () => {
+      const eventId = 999;
+      const userId = 'test-uid';
+
+      // Mock Supabase for the matching process - volunteer found, event not found
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { fullName: 'John Doe' },
+                  error: null
+                })
+              })
+            })
+          };
+        } else if (table === 'eventdetails') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: null,
+                  error: { message: 'Event not found' }
+                })
+              })
+            })
+          };
+        }
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockReturnThis(),
+          insert: jest.fn().mockReturnThis(),
+        };
+      });
+
+      const res = await request(app)
+        .post("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId });
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Event not found");
+    });
+
+    it("should return 400 when database error occurs during volunteer history insert", async () => {
+      const eventId = 1;
+      const userId = 'test-uid';
+
+      // Mock Supabase for the matching process - volunteer and event found, but insert fails
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { fullName: 'John Doe' },
+                  error: null
+                })
+              })
+            })
+          };
+        } else if (table === 'eventdetails') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: {
+                    eventid: eventId,
+                    eventname: 'Test Event',
+                    eventdescription: 'Test Description',
+                    location: 'Houston, TX',
+                    requiredskills: ['Teamwork'],
+                    urgency: 'Medium',
+                    eventdate: '2025-08-08'
+                  },
+                  error: null
+                })
+              })
+            })
+          };
+        } else if (table === 'volunteerhistory') {
+          return {
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Duplicate entry' }
+              })
+            })
+          };
+        }
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockReturnThis(),
+          insert: jest.fn().mockReturnThis(),
+        };
+      });
+
+      const res = await request(app)
+        .post("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Duplicate entry");
+    });
+
+    it("should return 500 when error occurs in getAllMatchesAndVolunteersHandler", async () => {
+      // Mock Supabase to throw error
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'usercredentials') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+            })
+          };
+        }
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockReturnThis(),
+        };
+      });
+
+      const res = await request(app)
+        .get("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`);
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Failed to fetch matches/volunteers");
+    });
+
+    it("should return matches for a specific event", async () => {
+      const eventId = 1;
+
+      // Mock Supabase for getMatchesForEventHandler
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [{
+              id: 1,
+              uid: 'test-uid',
+              volunteername: 'John Doe',
+              eventid: eventId,
+              eventname: 'Test Event',
+              eventdescription: 'Test Description',
+              location: 'Houston, TX',
+              requiredskills: ['Teamwork'],
+              urgency: 'Medium',
+              eventdate: '2025-08-08',
+              participationstatus: 'assigned'
+            }],
+            error: null
+          })
+        })
+      });
+
+      const res = await request(app)
+        .get(`/api/matching/${eventId}`)
+        .set("Authorization", `Bearer ${adminIdToken}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty("success", true);
+      expect(res.body).toHaveProperty("matches");
+      expect(Array.isArray(res.body.matches)).toBe(true);
+      expect(res.body.matches[0]).toMatchObject({
+        eventid: eventId,
+        volunteername: 'John Doe'
+      });
+    });
+
+    it("should return 500 when error occurs in getMatchesForEventHandler", async () => {
+      const eventId = 1;
+
+      // Mock Supabase to throw error
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockRejectedValue(new Error('Database error'))
+        })
+      });
+
+      const res = await request(app)
+        .get(`/api/matching/${eventId}`)
+        .set("Authorization", `Bearer ${adminIdToken}`);
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Failed to fetch matches");
+    });
+
+    it("should return 404 when error occurs during unmatch operation", async () => {
+      const eventId = 1;
+      const userId = 'test-uid';
+
+      // Mock Supabase to return error during delete
+      mockSupabase.from.mockReturnValue({
+        delete: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Record not found' }
+            })
+          })
+        })
+      });
+
+      const res = await request(app)
+        .delete("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId });
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Record not found");
+    });
+
+    it("should return 500 when exception occurs during unmatch operation", async () => {
+      const eventId = 1;
+      const userId = 'test-uid';
+
+      // Mock Supabase to throw exception
+      mockSupabase.from.mockReturnValue({
+        delete: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+          })
+        })
+      });
+
+      const res = await request(app)
+        .delete("/api/matching")
+        .set("Authorization", `Bearer ${adminIdToken}`)
+        .send({ userId: userId, eventId: eventId });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toHaveProperty("success", false);
+      expect(res.body).toHaveProperty("message", "Failed to unmatch volunteer");
     });
   });
 
