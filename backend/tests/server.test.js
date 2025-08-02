@@ -1659,7 +1659,6 @@ describe('userRoutes tests', () => {
     });
   });
 
-
   it('POST /api/users/update-profile returns 404 if body is missing or invalid', async () => {
     // Mock Supabase to return no data for update
     mockSupabase.from.mockReturnValue({
@@ -1681,6 +1680,420 @@ describe('userRoutes tests', () => {
       .send();
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'User not found or update failed' });
+  });
+
+
+  // More User Routes Tests here ------------------------------------------------------------
+
+  it('POST /api/users/update-profile returns 500 when database error occurs', async () => {
+    mockSupabase.from.mockReturnValue({
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockRejectedValue(new Error('Database error'))
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .post('/api/users/update-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send({ fullName: 'Updated Name' });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to update profile' });
+  });
+
+  it('POST /api/users/update-profile returns 200 with updated profile data', async () => {
+    const updatedProfile = {
+      uid: 'test-uid',
+      fullName: 'Updated Name',
+      address1: '456 New St',
+      city: 'New City',
+      state: 'CA',
+      zipCode: '90210',
+      skills: ['New Skill'],
+      availability: ['Wednesday']
+    };
+
+    mockSupabase.from.mockReturnValue({
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: updatedProfile,
+              error: null
+            })
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .post('/api/users/update-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send({ fullName: 'Updated Name' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(updatedProfile);
+  });
+
+  it('GET /api/users/profile returns 200 with profile data when profile exists', async () => {
+    const profileData = {
+      uid: 'test-uid',
+      fullName: 'John Doe',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Teamwork', 'Communication'],
+      availability: ['Monday', 'Tuesday'],
+      profileCompleted: true
+    };
+
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: profileData,
+            error: null
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      message: 'Token verified successfully',
+      profile: profileData
+    });
+  });
+
+  it('GET /api/users/profile returns 200 with empty profile when no profile exists', async () => {
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116' }
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      message: 'Token verified successfully',
+      profile: {
+        uid: 'test-uid',
+        fullName: '',
+        address1: '',
+        address2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        skills: [],
+        preferences: '',
+        availability: [],
+        profileCompleted: false
+      }
+    });
+  });
+
+  it('GET /api/users/profile returns 500 when database error occurs', async () => {
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Database error' }
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to fetch profile' });
+  });
+
+  it('GET /api/users/profile-status returns 200 with profileCompleted false when no profile exists', async () => {
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116' }
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile-status')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ profileCompleted: false });
+  });
+
+  it('GET /api/users/profile-status returns 200 with profileCompleted true when profile is complete', async () => {
+    const completeProfile = {
+      fullName: 'John Doe',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Teamwork'],
+      availability: ['Monday']
+    };
+
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: completeProfile,
+            error: null
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile-status')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ profileCompleted: true });
+  });
+
+  it('GET /api/users/profile-status returns 200 with profileCompleted false when profile is incomplete', async () => {
+    const incompleteProfile = {
+      fullName: 'John Doe',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: [], 
+      availability: [] 
+    };
+
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: incompleteProfile,
+            error: null
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile-status')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ profileCompleted: false });
+  });
+
+  it('GET /api/users/profile-status returns 500 when database error occurs', async () => {
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Database error' }
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile-status')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to check profile status' });
+  });
+
+  it('POST /api/users/create-profile returns 200 when creating new user with password', async () => {
+    // Mock bcrypt for password hashing
+    jest.mock('bcryptjs', () => ({
+      hash: jest.fn().mockResolvedValue('hashedPassword123')
+    }));
+
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116' }
+          }),
+          insert: jest.fn().mockResolvedValue({
+            data: { uid: 'test-uid' },
+            error: null
+          })
+        };
+      } else if (table === 'userprofile') {
+        return {
+          upsert: jest.fn().mockResolvedValue({
+            data: { uid: 'test-uid' },
+            error: null
+          })
+        };
+      }
+      return mockSupabase;
+    });
+
+    const profileData = {
+      fullName: 'New User',
+      address1: '123 New St',
+      city: 'New City',
+      state: 'CA',
+      zipCode: '90210',
+      skills: ['Skill1'],
+      availability: ['Monday'],
+      password: 'password123'
+    };
+
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send(profileData);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: 'Profile created/updated successfully' });
+  });
+
+  it('POST /api/users/create-profile returns 200 when updating existing user without password', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: { uid: 'test-uid', email: 'test@example.com' },
+            error: null
+          })
+        };
+      } else if (table === 'userprofile') {
+        return {
+          upsert: jest.fn().mockResolvedValue({
+            data: { uid: 'test-uid' },
+            error: null
+          })
+        };
+      }
+      return mockSupabase;
+    });
+
+    const profileData = {
+      fullName: 'Updated User',
+      address1: '456 Updated St',
+      city: 'Updated City',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Updated Skill'],
+      availability: ['Tuesday']
+    };
+
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send(profileData);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: 'Profile created/updated successfully' });
+  });
+
+  it('POST /api/users/create-profile returns 500 when user credentials creation fails', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116' }
+          }),
+          insert: jest.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Credentials creation failed' }
+          })
+        };
+      }
+      return mockSupabase;
+    });
+
+    const profileData = {
+      fullName: 'New User',
+      password: 'password123'
+    };
+
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send(profileData);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ 
+      error: 'Failed to create user credentials', 
+      details: 'Credentials creation failed' 
+    });
+  });
+
+  it('POST /api/users/create-profile returns 500 when profile upsert fails', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: { uid: 'test-uid', email: 'test@example.com' },
+            error: null
+          })
+        };
+      } else if (table === 'userprofile') {
+        return {
+          upsert: jest.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Profile upsert failed' }
+          })
+        };
+      }
+      return mockSupabase;
+    });
+
+    const profileData = {
+      fullName: 'Test User'
+    };
+
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send(profileData);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Profile upsert failed' });
+  });
+
+  it('POST /api/users/create-profile returns 500 when exception occurs', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      throw new Error('Unexpected database error');
+    });
+
+    const profileData = {
+      fullName: 'Test User'
+    };
+
+    const res = await request(app)
+      .post('/api/users/create-profile')
+      .set('Authorization', 'Bearer testtoken')
+      .send(profileData);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to create/update profile' });
   });
 });
 
