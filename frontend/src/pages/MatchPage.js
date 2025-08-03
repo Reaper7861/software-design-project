@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box, Typography, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, Button
+  TableContainer, TableHead, TableRow, Paper, Button, Tooltip
 } from '@mui/material';
 import axios from 'axios';
 import { getAuth, onAuthStateChanged } from "firebase/auth"; //used for authentication
@@ -18,6 +18,146 @@ const MatchPage = () => {
 
   const itemsPerPage = 4;
   const [user, setUser] = useState(null);
+
+  // Function to check compatibility between volunteer and event
+  const checkCompatibility = (volunteer, event) => {
+    if (!volunteer || !event) return false;
+
+    // Check if volunteer has at least one required skill
+    const volunteerSkills = volunteer.profile?.skills || [];
+    const eventSkills = Array.isArray(event.requiredskills) ? event.requiredskills : [event.requiredskills];
+    const hasMatchingSkill = volunteerSkills.some(skill => eventSkills.includes(skill));
+    
+    if (!hasMatchingSkill) return false;
+
+    // Check location compatibility (volunteer's city vs event location)
+    const volunteerCity = volunteer.profile?.city?.toLowerCase() || '';
+    const eventLocation = event.location?.toLowerCase() || '';
+    const locationCompatible = eventLocation.includes(volunteerCity) || volunteerCity.includes(eventLocation);
+
+    // Check availability compatibility
+    let eventDate;
+    try {
+      // Extract just the date part from the event datetime string
+      eventDate = event.eventdate.split('T')[0];
+    } catch (error) {
+      // Fallback: try to parse the full datetime string and extract date
+      const parsedDate = new Date(event.eventdate);
+      eventDate = parsedDate.toISOString().split('T')[0];
+    }
+    
+    let availabilityCompatible = false;
+    const volunteerAvailability = volunteer.profile?.availability;
+    
+    if (Array.isArray(volunteerAvailability)) {
+      // If availability is an array of dates, check if the event date is in the array
+      availabilityCompatible = volunteerAvailability.some(availableDate => {
+        const availableDateStr = availableDate.toString();
+        return availableDateStr === eventDate || 
+               availableDateStr.includes('any') || 
+               availableDateStr.includes('all') || 
+               availableDateStr.includes('flexible') ||
+               availableDateStr.includes('everyday') ||
+               availableDateStr.includes('daily');
+      });
+    } else if (typeof volunteerAvailability === 'object' && volunteerAvailability !== null) {
+      // If availability is an object with date: boolean pairs, check if the specific date is true
+      // or if there's a general availability flag
+      availabilityCompatible = volunteerAvailability[eventDate] === true || 
+                              volunteerAvailability.any === true || 
+                              volunteerAvailability.all === true ||
+                              volunteerAvailability.flexible === true ||
+                              volunteerAvailability.everyday === true ||
+                              volunteerAvailability.daily === true;
+    }
+
+    return hasMatchingSkill && locationCompatible && availabilityCompatible;
+  };
+
+  // Get compatibility status for an event
+  const getEventCompatibilityStatus = (event) => {
+    if (!selectedVolunteer) return 'neutral';
+    return checkCompatibility(selectedVolunteer, event) ? 'compatible' : 'incompatible';
+  };
+
+  // Get detailed compatibility information
+  const getCompatibilityDetails = (volunteer, event) => {
+    if (!volunteer || !event) return '';
+
+    const volunteerSkills = volunteer.profile?.skills || [];
+    const eventSkills = Array.isArray(event.requiredskills) ? event.requiredskills : [event.requiredskills];
+    const hasMatchingSkill = volunteerSkills.some(skill => eventSkills.includes(skill));
+    
+    const volunteerCity = volunteer.profile?.city?.toLowerCase() || '';
+    const eventLocation = event.location?.toLowerCase() || '';
+    const locationCompatible = eventLocation.includes(volunteerCity) || volunteerCity.includes(eventLocation);
+
+    let eventDate;
+    try {
+      // Extract just the date part from the event datetime string
+      eventDate = event.eventdate.split('T')[0];
+    } catch (error) {
+      // Fallback: try to parse the full datetime string and extract date
+      const parsedDate = new Date(event.eventdate);
+      eventDate = parsedDate.toISOString().split('T')[0];
+    }
+    
+    let availabilityCompatible = false;
+    const volunteerAvailability = volunteer.profile?.availability;
+    
+    if (Array.isArray(volunteerAvailability)) {
+      availabilityCompatible = volunteerAvailability.some(availableDate => {
+        const availableDateStr = availableDate.toString();
+        return availableDateStr === eventDate || 
+               availableDateStr.includes('any') || 
+               availableDateStr.includes('all') || 
+               availableDateStr.includes('flexible') ||
+               availableDateStr.includes('everyday') ||
+               availableDateStr.includes('daily');
+      });
+    } else if (typeof volunteerAvailability === 'object' && volunteerAvailability !== null) {
+      availabilityCompatible = volunteerAvailability[eventDate] === true || 
+                              volunteerAvailability.any === true || 
+                              volunteerAvailability.all === true ||
+                              volunteerAvailability.flexible === true ||
+                              volunteerAvailability.everyday === true ||
+                              volunteerAvailability.daily === true;
+    }
+
+    const details = [];
+    if (!hasMatchingSkill) {
+      details.push(`❌ Skills: Volunteer has: [${volunteerSkills.join(', ')}]`);
+      details.push(`   Event needs: [${eventSkills.join(', ')}]`);
+      details.push(`   Comparison: No matching skills found`);
+    } else {
+      const matchingSkills = volunteerSkills.filter(skill => eventSkills.includes(skill));
+      details.push(`✅ Skills: Volunteer has: [${volunteerSkills.join(', ')}]`);
+      details.push(`   Event needs: [${eventSkills.join(', ')}]`);
+      details.push(`   Match found: [${matchingSkills.join(', ')}]`);
+    }
+    
+    if (!locationCompatible) {
+      details.push(`❌ Location: Volunteer city: "${volunteer.profile?.city}"`);
+      details.push(`   Event location: "${event.location}"`);
+      details.push(`   Comparison: City not found in location`);
+    } else {
+      details.push(`✅ Location: Volunteer city: "${volunteer.profile?.city}"`);
+      details.push(`   Event location: "${event.location}"`);
+      details.push(`   Match found: City matches location`);
+    }
+    
+    if (!availabilityCompatible) {
+      details.push(`❌ Availability: Event date: "${eventDate}" (from: ${event.eventdate})`);
+      details.push(`   Volunteer availability: ${JSON.stringify(volunteerAvailability)}`);
+      details.push(`   Comparison: Looking for "${eventDate}" in volunteer's availability`);
+    } else {
+      details.push(`✅ Availability: Event date: "${eventDate}" (from: ${event.eventdate})`);
+      details.push(`   Volunteer availability: ${JSON.stringify(volunteerAvailability)}`);
+      details.push(`   Match found: "${eventDate}" is available`);
+    }
+
+    return details.join('\n');
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,12 +275,25 @@ const MatchPage = () => {
   const indexOfFirstVolunteer = indexOfLastVolunteer - itemsPerPage;
   const paginatedVolunteers = volunteers.slice(indexOfFirstVolunteer, indexOfLastVolunteer);
 
+  // Sort events by compatibility when a volunteer is selected
+  const sortedEvents = useMemo(() => {
+    if (!selectedVolunteer) return events;
+    
+    return [...events].sort((a, b) => {
+      const aCompatible = checkCompatibility(selectedVolunteer, a);
+      const bCompatible = checkCompatibility(selectedVolunteer, b);
+      if (aCompatible && !bCompatible) return -1;
+      if (!aCompatible && bCompatible) return 1;
+      return 0;
+    });
+  }, [selectedVolunteer, events]);
+
   const indexOfLastEvent = currentEventPage * itemsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - itemsPerPage;
-  const paginatedEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
+  const paginatedEvents = sortedEvents.slice(indexOfFirstEvent, indexOfLastEvent);
 
-  const totalPagesVolunteers = Math.ceil(volunteers.length / itemsPerPage);
-  const totalPagesEvents = Math.ceil(events.length / itemsPerPage);
+    const totalPagesVolunteers = Math.ceil(volunteers.length / itemsPerPage);
+  const totalPagesEvents = Math.ceil(sortedEvents.length / itemsPerPage);
 
   return (
     <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
@@ -174,7 +327,14 @@ const MatchPage = () => {
                     key={v.uid}
                     hover
                     selected={selectedVolunteer?.uid === v.uid}
-                    onClick={() => setSelectedVolunteer(selectedVolunteer?.uid === v.uid ? null : v)}
+                    onClick={() => {
+                      const newSelection = selectedVolunteer?.uid === v.uid ? null : v;
+                      setSelectedVolunteer(newSelection);
+                      // Reset to first page when changing volunteer selection
+                      if (newSelection !== selectedVolunteer) {
+                        setCurrentEventPage(1);
+                      }
+                    }}
                     sx={{
                       cursor: 'pointer',
                       backgroundColor: selectedVolunteer?.uid === v.uid ? '#adadadff' : 'inherit',
@@ -223,8 +383,20 @@ const MatchPage = () => {
         {/* Events Table */}
         <TableContainer component={Paper} sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
           <Typography variant="h6" sx={{ p: 1 }}>
-            Events
+            Events {selectedVolunteer && '(Sorted by compatibility)'}
           </Typography>
+          {selectedVolunteer && (
+            <Box sx={{ p: 1, display: 'flex', gap: 2, alignItems: 'center', fontSize: '0.875rem' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ width: 16, height: 16, backgroundColor: '#e8f5e8', border: '1px solid #ccc' }}></Box>
+                <Typography variant="body2">Compatible</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ width: 16, height: 16, backgroundColor: '#ffeaea', border: '1px solid #ccc' }}></Box>
+                <Typography variant="body2">Incompatible</Typography>
+              </Box>
+            </Box>
+          )}
           <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
             <Table>
               <TableHead>
@@ -239,17 +411,43 @@ const MatchPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedEvents.map((e) => (
-                  <TableRow
-                    key={e.eventid}
-                    hover
-                    selected={selectedEvent?.eventid === e.eventid}
-                    onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
-                    sx={{
-                      cursor: 'pointer',
-                      backgroundColor: selectedEvent?.eventid === e.eventid ? '#e0f7fa' : 'inherit',
-                    }}
-                  >
+                {paginatedEvents.map((e) => {
+                  const compatibilityStatus = getEventCompatibilityStatus(e);
+                  const isCompatible = compatibilityStatus === 'compatible';
+                  const isIncompatible = compatibilityStatus === 'incompatible';
+                  const compatibilityDetails = selectedVolunteer ? getCompatibilityDetails(selectedVolunteer, e) : '';
+                  
+                  return (
+                    <Tooltip 
+                      title={selectedVolunteer ? compatibilityDetails : ''} 
+                      placement="left"
+                      arrow
+                    >
+                      <TableRow
+                      key={e.eventid}
+                      hover
+                      selected={selectedEvent?.eventid === e.eventid}
+                      onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
+                      sx={{
+                        cursor: 'pointer',
+                        backgroundColor: selectedEvent?.eventid === e.eventid 
+                          ? '#e0f7fa' 
+                          : isCompatible 
+                            ? '#e8f5e8' // Light green for compatible
+                            : isIncompatible 
+                              ? '#ffeaea' // Light red for incompatible
+                              : 'inherit',
+                        '&:hover': {
+                          backgroundColor: selectedEvent?.eventid === e.eventid 
+                            ? '#e0f7fa' 
+                            : isCompatible 
+                              ? '#d4edda' // Darker green on hover
+                              : isIncompatible 
+                                ? '#f8d7da' // Darker red on hover
+                                : '#f5f5f5',
+                        }
+                      }}
+                    >
                     <TableCell>{e.eventid}</TableCell>
                     <TableCell>{e.eventname}</TableCell>
                     <TableCell>{e.eventdescription}</TableCell>
@@ -258,7 +456,9 @@ const MatchPage = () => {
                     <TableCell>{e.urgency}</TableCell>
                     <TableCell>{e.eventdate}</TableCell>
                   </TableRow>
-                ))}
+                    </Tooltip>
+                  );
+                })}
               </TableBody>
             </Table>
           </Box>
