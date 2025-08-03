@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Typography, CircularProgress, Box } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { getAuth } from "firebase/auth";
+import '../css/ReportingPage.css';
 
 const EventList = () => {
   const [events, setEvents] = useState([]);
@@ -68,20 +69,26 @@ const EventList = () => {
 
 
   return (
-    <Box sx={{ bgcolor: 'white', borderRadius: 2, boxShadow: 2, p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>All Events</Typography>
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          autoHeight
-          disableRowSelectionOnClick
-          pageSize={10}
-        />
-      )}
-    </Box>
+    <div class='reporting-container'>
+      <Box sx={{ bgcolor: 'white', borderRadius: 2, boxShadow: 2, p: 3 }}>
+        <Typography variant="h1" className="reporting-title" sx={{mb: 3, pb: 2}}>Events</Typography>
+        {loading ? (
+          <CircularProgress />
+        ) : (
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            disableRowSelectionOnClick
+            pageSizeOptions={[25, 50, 100]}
+            initialState={{
+            pagination: {
+              paginationModel: { pageSize: 25 },
+              },
+            }}
+          />
+        )}
+      </Box>
+    </div>
   );
 };
 

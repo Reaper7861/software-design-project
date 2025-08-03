@@ -1824,16 +1824,75 @@ describe('userRoutes tests', () => {
     expect(res.body).toEqual({ error: 'Failed to fetch profile' });
   });
 
-  it('GET /api/users/profile-status returns 200 with profileCompleted false when no profile exists', async () => {
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116' }
+  it('GET /api/users/profile-status returns 200 with profileCompleted true when user is admin (bypasses profile check)', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { role: 'administrator' },
+                error: null
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null
+            })
           })
         })
-      })
+      };
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile-status')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ profileCompleted: true });
+  });
+
+  it('GET /api/users/profile-status returns 200 with profileCompleted false when no profile exists for volunteer', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { role: 'volunteer' },
+                error: null
+              })
+            })
+          })
+        };
+      }
+      if (table === 'userprofile') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { code: 'PGRST116' }
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null
+            })
+          })
+        })
+      };
     });
 
     const res = await request(app)
@@ -1843,7 +1902,7 @@ describe('userRoutes tests', () => {
     expect(res.body).toEqual({ profileCompleted: false });
   });
 
-  it('GET /api/users/profile-status returns 200 with profileCompleted true when profile is complete', async () => {
+  it('GET /api/users/profile-status returns 200 with profileCompleted true when profile is complete for volunteer', async () => {
     const completeProfile = {
       fullName: 'John Doe',
       address1: '123 Main St',
@@ -1854,15 +1913,41 @@ describe('userRoutes tests', () => {
       availability: ['Monday']
     };
 
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: completeProfile,
-            error: null
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { role: 'volunteer' },
+                error: null
+              })
+            })
+          })
+        };
+      }
+      if (table === 'userprofile') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: completeProfile,
+                error: null
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null
+            })
           })
         })
-      })
+      };
     });
 
     const res = await request(app)
@@ -1872,7 +1957,7 @@ describe('userRoutes tests', () => {
     expect(res.body).toEqual({ profileCompleted: true });
   });
 
-  it('GET /api/users/profile-status returns 200 with profileCompleted false when profile is incomplete', async () => {
+  it('GET /api/users/profile-status returns 200 with profileCompleted false when profile is incomplete for volunteer', async () => {
     const incompleteProfile = {
       fullName: 'John Doe',
       address1: '123 Main St',
@@ -1883,15 +1968,41 @@ describe('userRoutes tests', () => {
       availability: [] 
     };
 
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: incompleteProfile,
-            error: null
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { role: 'volunteer' },
+                error: null
+              })
+            })
+          })
+        };
+      }
+      if (table === 'userprofile') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: incompleteProfile,
+                error: null
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null
+            })
           })
         })
-      })
+      };
     });
 
     const res = await request(app)
@@ -1901,16 +2012,75 @@ describe('userRoutes tests', () => {
     expect(res.body).toEqual({ profileCompleted: false });
   });
 
-  it('GET /api/users/profile-status returns 500 when database error occurs', async () => {
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Database error' }
+  it('GET /api/users/profile-status returns 500 when role check fails', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Database error' }
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null
+            })
           })
         })
-      })
+      };
+    });
+
+    const res = await request(app)
+      .get('/api/users/profile-status')
+      .set('Authorization', 'Bearer testtoken');
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to check user role' });
+  });
+
+  it('GET /api/users/profile-status returns 500 when profile check fails for volunteer', async () => {
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'usercredentials') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { role: 'volunteer' },
+                error: null
+              })
+            })
+          })
+        };
+      }
+      if (table === 'userprofile') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Database error' }
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null
+            })
+          })
+        })
+      };
     });
 
     const res = await request(app)
