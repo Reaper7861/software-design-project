@@ -19,23 +19,15 @@ const MatchPage = () => {
   const itemsPerPage = 4;
   const [user, setUser] = useState(null);
 
-  // Function to check compatibility between volunteer and event
-  const checkCompatibility = (volunteer, event) => {
-    if (!volunteer || !event) return false;
-
-    // Check if volunteer has at least one required skill
-    const volunteerSkills = volunteer.profile?.skills || [];
-    const eventSkills = Array.isArray(event.requiredskills) ? event.requiredskills : [event.requiredskills];
-    const hasMatchingSkill = volunteerSkills.some(skill => eventSkills.includes(skill));
-    
-    if (!hasMatchingSkill) return false;
-
-    // Check location compatibility (volunteer's city vs event location)
+  // Function to check if location matches between volunteer and event
+  const checkLocationMatch = (volunteer, event) => {
     const volunteerCity = volunteer.profile?.city?.toLowerCase() || '';
     const eventLocation = event.location?.toLowerCase() || '';
-    const locationCompatible = eventLocation.includes(volunteerCity) || volunteerCity.includes(eventLocation);
+    return eventLocation.includes(volunteerCity) || volunteerCity.includes(eventLocation);
+  };
 
-    // Check availability compatibility
+  // Function to check if at least one date matches between volunteer and event
+  const checkDateMatch = (volunteer, event) => {
     let eventDate;
     try {
       // Extract just the date part from the event datetime string
@@ -46,12 +38,11 @@ const MatchPage = () => {
       eventDate = parsedDate.toISOString().split('T')[0];
     }
     
-    let availabilityCompatible = false;
     const volunteerAvailability = volunteer.profile?.availability;
     
     if (Array.isArray(volunteerAvailability)) {
       // If availability is an array of dates, check if the event date is in the array
-      availabilityCompatible = volunteerAvailability.some(availableDate => {
+      return volunteerAvailability.some(availableDate => {
         const availableDateStr = availableDate.toString();
         return availableDateStr === eventDate || 
                availableDateStr.includes('any') || 
@@ -63,30 +54,43 @@ const MatchPage = () => {
     } else if (typeof volunteerAvailability === 'object' && volunteerAvailability !== null) {
       // If availability is an object with date: boolean pairs, check if the specific date is true
       // or if there's a general availability flag
-      availabilityCompatible = volunteerAvailability[eventDate] === true || 
-                              volunteerAvailability.any === true || 
-                              volunteerAvailability.all === true ||
-                              volunteerAvailability.flexible === true ||
-                              volunteerAvailability.everyday === true ||
-                              volunteerAvailability.daily === true;
+      return volunteerAvailability[eventDate] === true || 
+             volunteerAvailability.any === true || 
+             volunteerAvailability.all === true ||
+             volunteerAvailability.flexible === true ||
+             volunteerAvailability.everyday === true ||
+             volunteerAvailability.daily === true;
     }
-
-    return hasMatchingSkill && locationCompatible && availabilityCompatible;
+    
+    return false;
   };
 
-  // Get compatibility status for an event
+  // Function to count matching skills between volunteer and event
+  const countMatchingSkills = (volunteer, event) => {
+    const volunteerSkills = volunteer.profile?.skills || [];
+    const eventSkills = Array.isArray(event.requiredskills) ? event.requiredskills : [event.requiredskills];
+    return volunteerSkills.filter(skill => eventSkills.includes(skill)).length;
+  };
+
+  // Function to check if volunteer and event are matchable (location and date must match)
+  const isMatchable = (volunteer, event) => {
+    return checkLocationMatch(volunteer, event) && checkDateMatch(volunteer, event);
+  };
+
+  // Function to get compatibility status for an event
   const getEventCompatibilityStatus = (event) => {
     if (!selectedVolunteer) return 'neutral';
-    return checkCompatibility(selectedVolunteer, event) ? 'compatible' : 'incompatible';
+    return isMatchable(selectedVolunteer, event) ? 'compatible' : 'incompatible';
   };
 
-  // Get detailed compatibility information
+  // Function to get detailed compatibility information
   const getCompatibilityDetails = (volunteer, event) => {
     if (!volunteer || !event) return '';
 
     const volunteerSkills = volunteer.profile?.skills || [];
     const eventSkills = Array.isArray(event.requiredskills) ? event.requiredskills : [event.requiredskills];
-    const hasMatchingSkill = volunteerSkills.some(skill => eventSkills.includes(skill));
+    const matchingSkills = volunteerSkills.filter(skill => eventSkills.includes(skill));
+    const skillMatchCount = matchingSkills.length;
     
     const volunteerCity = volunteer.profile?.city?.toLowerCase() || '';
     const eventLocation = event.location?.toLowerCase() || '';
@@ -125,35 +129,39 @@ const MatchPage = () => {
     }
 
     const details = [];
-    if (!hasMatchingSkill) {
-      details.push(`❌ Skills: Volunteer has: [${volunteerSkills.join(', ')}]`);
-      details.push(`   Event needs: [${eventSkills.join(', ')}]`);
-      details.push(`   Comparison: No matching skills found`);
-    } else {
-      const matchingSkills = volunteerSkills.filter(skill => eventSkills.includes(skill));
-      details.push(`✅ Skills: Volunteer has: [${volunteerSkills.join(', ')}]`);
-      details.push(`   Event needs: [${eventSkills.join(', ')}]`);
-      details.push(`   Match found: [${matchingSkills.join(', ')}]`);
-    }
     
+    // Location check (MUST match)
     if (!locationCompatible) {
-      details.push(`❌ Location: Volunteer city: "${volunteer.profile?.city}"`);
+      details.push(`   Location: Volunteer city: "${volunteer.profile?.city}"`);
       details.push(`   Event location: "${event.location}"`);
-      details.push(`   Comparison: City not found in location`);
+      details.push(`   Status: Location MUST match - NO MATCH`);
     } else {
-      details.push(`✅ Location: Volunteer city: "${volunteer.profile?.city}"`);
+      details.push(`   Location: Volunteer city: "${volunteer.profile?.city}"`);
       details.push(`   Event location: "${event.location}"`);
-      details.push(`   Match found: City matches location`);
+      details.push(`   Status: Location matches ✓`);
     }
     
+    // Date check (MUST match)
     if (!availabilityCompatible) {
-      details.push(`❌ Availability: Event date: "${eventDate}" (from: ${event.eventdate})`);
+      details.push(`   Date: Event date: "${eventDate}"`);
       details.push(`   Volunteer availability: ${JSON.stringify(volunteerAvailability)}`);
-      details.push(`   Comparison: Looking for "${eventDate}" in volunteer's availability`);
+      details.push(`   Status: At least one date MUST match - NO MATCH`);
     } else {
-      details.push(`✅ Availability: Event date: "${eventDate}" (from: ${event.eventdate})`);
+      details.push(`   Date: Event date: "${eventDate}"`);
       details.push(`   Volunteer availability: ${JSON.stringify(volunteerAvailability)}`);
-      details.push(`   Match found: "${eventDate}" is available`);
+      details.push(`   Status: Date matches ✓`);
+    }
+    
+    // Skills check (for ordering)
+    details.push(`   Skills: Volunteer has: [${volunteerSkills.join(', ')}]`);
+    details.push(`   Event needs: [${eventSkills.join(', ')}]`);
+    details.push(`   Matching skills: [${matchingSkills.join(', ')}] (${skillMatchCount} matches)`);
+    
+    // Overall matchability
+    if (locationCompatible && availabilityCompatible) {
+      details.push(`MATCHABLE: Location ✓ Date ✓ Skills: ${skillMatchCount} matches`);
+    } else {
+      details.push(`NOT MATCHABLE: Location or Date requirement not met`);
     }
 
     return details.join('\n');
@@ -275,15 +283,28 @@ const MatchPage = () => {
   const indexOfFirstVolunteer = indexOfLastVolunteer - itemsPerPage;
   const paginatedVolunteers = volunteers.slice(indexOfFirstVolunteer, indexOfLastVolunteer);
 
-  // Sort events by compatibility when a volunteer is selected
+  // Sort events by new matching criteria when a volunteer is selected
   const sortedEvents = useMemo(() => {
     if (!selectedVolunteer) return events;
     
     return [...events].sort((a, b) => {
-      const aCompatible = checkCompatibility(selectedVolunteer, a);
-      const bCompatible = checkCompatibility(selectedVolunteer, b);
-      if (aCompatible && !bCompatible) return -1;
-      if (!aCompatible && bCompatible) return 1;
+      const aMatchable = isMatchable(selectedVolunteer, a);
+      const bMatchable = isMatchable(selectedVolunteer, b);
+      
+      // First, separate matchable from non-matchable
+      if (aMatchable && !bMatchable) return -1;
+      if (!aMatchable && bMatchable) return 1;
+      
+      // If both are matchable, sort by skill matches (most matches first)
+      if (aMatchable && bMatchable) {
+        const aSkillMatches = countMatchingSkills(selectedVolunteer, a);
+        const bSkillMatches = countMatchingSkills(selectedVolunteer, b);
+        
+        // Higher skill matches come first
+        if (aSkillMatches > bSkillMatches) return -1;
+        if (aSkillMatches < bSkillMatches) return 1;
+      }
+      
       return 0;
     });
   }, [selectedVolunteer, events]);
@@ -383,17 +404,17 @@ const MatchPage = () => {
         {/* Events Table */}
         <TableContainer component={Paper} sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
           <Typography variant="h6" sx={{ p: 1 }}>
-            Events {selectedVolunteer && '(Sorted by compatibility)'}
+            Events {selectedVolunteer && '(Sorted by Location/Date Match + Skill Count)'}
           </Typography>
           {selectedVolunteer && (
             <Box sx={{ p: 1, display: 'flex', gap: 2, alignItems: 'center', fontSize: '0.875rem' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{ width: 16, height: 16, backgroundColor: '#e8f5e8', border: '1px solid #ccc' }}></Box>
-                <Typography variant="body2">Compatible</Typography>
+                <Typography variant="body2">Matchable (Location + Date ✓)</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{ width: 16, height: 16, backgroundColor: '#ffeaea', border: '1px solid #ccc' }}></Box>
-                <Typography variant="body2">Incompatible</Typography>
+                <Typography variant="body2">Not Matchable (Location or Date ✗)</Typography>
               </Box>
             </Box>
           )}
@@ -416,6 +437,7 @@ const MatchPage = () => {
                   const isCompatible = compatibilityStatus === 'compatible';
                   const isIncompatible = compatibilityStatus === 'incompatible';
                   const compatibilityDetails = selectedVolunteer ? getCompatibilityDetails(selectedVolunteer, e) : '';
+                  const skillMatchCount = selectedVolunteer ? countMatchingSkills(selectedVolunteer, e) : 0;
                   
                   return (
                     <Tooltip 
@@ -452,7 +474,14 @@ const MatchPage = () => {
                     <TableCell>{e.eventname}</TableCell>
                     <TableCell>{e.eventdescription}</TableCell>
                     <TableCell>{e.location}</TableCell>
-                    <TableCell>{Array.isArray(e.requiredskills) ? e.requiredskills.join(', ') : e.requiredskills}</TableCell>
+                    <TableCell>
+                      {Array.isArray(e.requiredskills) ? e.requiredskills.join(', ') : e.requiredskills}
+                      {selectedVolunteer && isCompatible && (
+                        <Typography variant="caption" display="block" sx={{ color: 'green', fontWeight: 'bold' }}>
+                          {skillMatchCount} skill(s) match
+                        </Typography>
+                      )}
+                    </TableCell>
                     <TableCell>{e.urgency}</TableCell>
                     <TableCell>{e.eventdate}</TableCell>
                   </TableRow>
