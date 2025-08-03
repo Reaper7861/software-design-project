@@ -27,7 +27,7 @@ class ReportingController {
                 const filePath = path.join(process.cwd(), result);
                 
                 if (fs.existsSync(filePath)) {
-                    res.setHeader('Content-Type', 'text/csv');
+                    res.setHeader('Content-Type', 'text/csv;  charset=utf-8');
                     res.setHeader('Content-Disposition', 'attachment; filename="volunteer_report.csv"');
                     res.sendFile(filePath, (err) => {
                         if (err) {
