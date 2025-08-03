@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export const ProfileRoute = ({ children }) => {
   const { user } = useAuth();
@@ -10,20 +11,17 @@ export const ProfileRoute = ({ children }) => {
   const [showError, setShowError] = useState(false);
 
   useEffect(() => {
-    const checkProfileStatus = async () => {
-      if (!user) {
-        setLoading(false);
+    let unsubscribe;
+    let mounted = true;
+
+    const checkProfileStatus = async (firebaseUser) => {
+      if (!firebaseUser || !mounted) {
+        if (mounted) setLoading(false);
         return;
       }
 
       try {
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          setLoading(false);
-          return;
-        }
-
-        const idToken = await currentUser.getIdToken();
+        const idToken = await firebaseUser.getIdToken();
         const response = await fetch('http://localhost:8080/api/users/profile-status', {
           method: 'GET',
           headers: {
@@ -31,6 +29,8 @@ export const ProfileRoute = ({ children }) => {
             'Content-Type': 'application/json',
           },
         });
+
+        if (!mounted) return;
 
         if (response.ok) {
           const data = await response.json();
@@ -41,7 +41,7 @@ export const ProfileRoute = ({ children }) => {
             setShowError(true);
             // Auto-hide error after 3 seconds and redirect
             setTimeout(() => {
-              setShowError(false);
+              if (mounted) setShowError(false);
             }, 3000);
           }
         } else {
@@ -51,14 +51,33 @@ export const ProfileRoute = ({ children }) => {
         }
       } catch (error) {
         console.error('Error checking profile status:', error);
-        setProfileCompleted(false);
-        setShowError(true);
+        if (mounted) {
+          setProfileCompleted(false);
+          setShowError(true);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
-    checkProfileStatus();
+    // Listen for Firebase auth state changes
+    unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser && user) {
+        // Only check profile status when both Firebase user and context user are available
+        checkProfileStatus(firebaseUser);
+      } else if (!firebaseUser) {
+        // Firebase user not authenticated
+        if (mounted) {
+          setLoading(false);
+          setProfileCompleted(false);
+        }
+      }
+    });
+
+    return () => {
+      mounted = false;
+      if (unsubscribe) unsubscribe();
+    };
   }, [user]);
 
   if (loading) {

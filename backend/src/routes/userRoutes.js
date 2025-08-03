@@ -54,7 +54,7 @@ router.get('/profile-status', verifyToken, async (req, res) => {
   try {
     const { data: profile, error } = await supabase
       .from('userprofile')
-      .select('fullName, address1, city, state, zipCode, skills, availability')
+      .select('fullName, address1, city, state, zipCode, skills, availability, profileCompleted')
       .eq('uid', uid)
       .single();
     
@@ -64,10 +64,16 @@ router.get('/profile-status', verifyToken, async (req, res) => {
     }
     
     if (error) {
+      console.error('Profile status check error:', error);
       return res.status(500).json({ error: 'Failed to check profile status' });
     }
     
-    // Check if all required fields are filled
+    // First check if profileCompleted flag is set to true
+    if (profile.profileCompleted === true) {
+      return res.json({ profileCompleted: true });
+    }
+    
+    // Fallback: Check if all required fields are filled
     const isCompleted = profile && 
       profile.fullName && 
       profile.address1 && 
@@ -81,6 +87,7 @@ router.get('/profile-status', verifyToken, async (req, res) => {
     
     return res.json({ profileCompleted: !!isCompleted });
   } catch (err) {
+    console.error('Profile status check exception:', err);
     return res.status(500).json({ error: 'Failed to check profile status' });
   }
 });
