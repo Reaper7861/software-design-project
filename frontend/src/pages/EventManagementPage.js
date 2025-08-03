@@ -52,12 +52,17 @@ const EventManagement = () => {
   };
 
   const hasFormChanged = () => {
+    // If we're creating a new event (no id), check if any fields have been filled
     if (!formData.id) {
       return Object.values(formData).some(value => 
         Array.isArray(value) ? value.length > 0 : value !== ''
       );
     }
+    
+    // If we're editing an event but don't have original data yet, no changes have been made
     if (!originalFormData) return false;
+    
+    // Compare current form data with original data
     const keys = Object.keys(formData);
     for (const key of keys) {
       if (key === 'skills') {
@@ -73,15 +78,7 @@ const EventManagement = () => {
     return false;
   };
 
-  const confirmNavigation = (callback) => {
-    if (hasFormChanged()) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to discard them?')) {
-        callback();
-      }
-    } else {
-      callback();
-    }
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -160,21 +157,31 @@ const EventManagement = () => {
   };
 
   const handleEdit = (event) => {
-    confirmNavigation(() => {
-      const eventData = {
-        id: event.eventid,
-        name: event.eventname,
-        description: event.eventdescription,
-        location: event.location,
-        skills: event.requiredskills || [],
-        urgency: event.urgency,
-        date: event.eventdate ? event.eventdate.split('T')[0] : ''
-      };
+    const eventData = {
+      id: event.eventid,
+      name: event.eventname,
+      description: event.eventdescription,
+      location: event.location,
+      skills: event.requiredskills || [],
+      urgency: event.urgency,
+      date: event.eventdate ? event.eventdate.split('T')[0] : ''
+    };
+    
+    // Only show confirmation if we're currently editing a different event with unsaved changes
+    if (selectedEventId && selectedEventId !== event.eventid && hasFormChanged()) {
+      if (window.confirm('You have unsaved changes. Are you sure you want to discard them?')) {
+        setFormData(eventData);
+        setOriginalFormData(eventData);
+        setSelectedEventId(event.eventid);
+        setError('');
+      }
+    } else {
+      // No unsaved changes or same event, proceed directly
       setFormData(eventData);
       setOriginalFormData(eventData);
       setSelectedEventId(event.eventid);
       setError('');
-    });
+    }
   };
 
   const handleDelete = async (eventId) => {
@@ -276,11 +283,17 @@ const EventManagement = () => {
           {formData.id && (
             <Button 
               onClick={() => {
-                confirmNavigation(() => {
+                if (hasFormChanged()) {
+                  if (window.confirm('You have unsaved changes. Are you sure you want to discard them?')) {
+                    setFormData({ id: null, name: '', description: '', location: '', skills: [], urgency: '', date: '' });
+                    setSelectedEventId(null);
+                    setOriginalFormData(null);
+                  }
+                } else {
                   setFormData({ id: null, name: '', description: '', location: '', skills: [], urgency: '', date: '' });
                   setSelectedEventId(null);
                   setOriginalFormData(null);
-                });
+                }
               }} 
               variant="outlined" 
               color="primary" 
