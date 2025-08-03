@@ -17,7 +17,7 @@ export const AuthProvider = ({children}) => {
     useEffect(() => {
         let unsubscribe;
         
-        const initializeAuth = () => {
+        const initializeAuth = async () => {
             // First, try to get user from localStorage
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
@@ -25,18 +25,53 @@ export const AuthProvider = ({children}) => {
             }
             
             // Then listen for Firebase auth state changes
-            unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
                 if (firebaseUser) {
-                    // Firebase user is authenticated
-                    const userData = {
-                        uid: firebaseUser.uid,
-                        email: firebaseUser.email,
-                        displayName: firebaseUser.displayName
-                    };
-                    
-                    // Update both state and localStorage
-                    setUser(userData);
-                    localStorage.setItem('user', JSON.stringify(userData));
+                    try {
+                        // Get the user's token
+                        const token = await firebaseUser.getIdToken();
+                        
+                        // Fetch user data from backend to get role and other info
+                        const response = await fetch('http://localhost:8080/api/auth/me', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const userData = await response.json();
+                            const completeUserData = {
+                                uid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                displayName: firebaseUser.displayName,
+                                role: userData.user.role,
+                                profile: userData.user.profile
+                            };
+                            
+                            // Update both state and localStorage
+                            setUser(completeUserData);
+                            localStorage.setItem('user', JSON.stringify(completeUserData));
+                        } else {
+                            // Fallback to basic Firebase user data if backend call fails
+                            const userData = {
+                                uid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                displayName: firebaseUser.displayName
+                            };
+                            setUser(userData);
+                            localStorage.setItem('user', JSON.stringify(userData));
+                        }
+                    } catch (error) {
+                        console.error('Error fetching user data from backend:', error);
+                        // Fallback to basic Firebase user data
+                        const userData = {
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            displayName: firebaseUser.displayName
+                        };
+                        setUser(userData);
+                        localStorage.setItem('user', JSON.stringify(userData));
+                    }
                 } else {
                     // Firebase user is not authenticated
                     setUser(null);
