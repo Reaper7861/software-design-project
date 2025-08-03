@@ -2,7 +2,7 @@
 import React, {createContext, useState, useEffect, useContext} from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 // Create context
 export const AuthContext = createContext();
@@ -12,6 +12,29 @@ export const AuthProvider = ({children}) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    // Handle logout on window close
+    useEffect(() => {
+        const handlePageHide = (event) => {
+            // Only logout if the page is not persisted
+            if (!event.persisted) {
+                // Clear localStorage and sign out from Firebase
+                localStorage.removeItem('user');
+                localStorage.removeItem('authToken');
+                signOut(auth).catch(error => {
+                    console.error('Error signing out from Firebase:', error);
+                });
+            }
+        };
+
+        // Add event listener for pagehide
+        window.addEventListener('pagehide', handlePageHide);
+
+        // Cleanup event listener on component unmount
+        return () => {
+            window.removeEventListener('pagehide', handlePageHide);
+        };
+    }, []);
 
     // On mount, check localStorage for user and Firebase auth state
     useEffect(() => {
@@ -98,6 +121,9 @@ export const AuthProvider = ({children}) => {
         setUser(null);
         localStorage.removeItem('user');
         localStorage.removeItem('authToken');
+        signOut(auth).catch(error => {
+            console.error('Error signing out from Firebase:', error);
+        });
         navigate("/homepage");
     };
 
