@@ -1,21 +1,43 @@
 // reporting.test.js unit tests
 
-jest.mock('pdfkit');
-jest.mock('csv-writer');
-jest.mock('../src/config/databaseBackend', () => ({
-  from: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockReturnThis(),
-  single: jest.fn(),
-  insert: jest.fn().mockReturnThis(),
-  upsert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  onConflict: jest.fn().mockReturnThis(),
-  order: jest.fn().mockReturnThis()
+// Mock PDFKit
+const mockPDFDocument = {
+  fontSize: jest.fn().mockReturnThis(),
+  text: jest.fn().mockReturnThis(),
+  moveDown: jest.fn().mockReturnThis(),
+  on: jest.fn().mockImplementation((event, callback) => {
+    if (event === 'data') {
+      callback(Buffer.from('mock pdf data'));
+    }
+    if (event === 'end') {
+      callback();
+    }
+    return mockPDFDocument;
+  }),
+  end: jest.fn()
+};
+
+jest.mock('pdfkit', () => {
+  return jest.fn().mockImplementation(() => mockPDFDocument);
+});
+
+// Mock CSV Writer
+const mockCsvWriter = {
+  writeRecords: jest.fn().mockResolvedValue()
+};
+
+jest.mock('csv-writer', () => ({
+  createObjectCsvWriter: jest.fn().mockReturnValue(mockCsvWriter)
 }));
 
+// Mock database
+const mockSupabase = {
+  from: jest.fn()
+};
+
+jest.mock('../src/config/databaseBackend', () => mockSupabase);
+
 const ReportingService = require('../src/services/reportingService');
-const supabase = require('../src/config/databaseBackend');
 
 describe('ReportingService', () => {
   beforeEach(() => {
@@ -35,29 +57,62 @@ describe('ReportingService', () => {
           zipCode: '77000',
           skills: ['Teaching', 'Cooking'],
           preferences: 'Work outdoors',
-          availability: ['2025-07-20'],
-          usercredentials: {
-            email: 'john@example.com',
-            role: 'volunteer'
-          },
-          volunteerhistory: [
-            {
-              eventname: 'Food Drive',
-              eventdate: '2024-01-15',
-              participationstatus: 'completed'
-            }
-          ]
+          availability: ['2025-07-20']
         }
       ];
 
-      supabase.order.mockResolvedValue({ data: mockVolunteers, error: null });
-      supabase.single.mockResolvedValue({ data: { email: 'john@example.com', role: 'volunteer' }, error: null });
+      const mockCredentials = { email: 'john@example.com', role: 'volunteer' };
+      const mockHistory = [
+        {
+          eventname: 'Food Drive',
+          eventdate: '2024-01-15',
+          participationstatus: 'completed'
+        }
+      ];
+
+      // Mock the usercredentials query
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'usercredentials') {
+          return {
+            select: jest.fn().mockImplementation((fields) => {
+              if (fields === 'uid, email, role') {
+                return Promise.resolve({ 
+                  data: [{ uid: 'user1', email: 'john@example.com', role: 'volunteer' }], 
+                  error: null 
+                });
+              } else if (fields === 'email, role') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  single: jest.fn().mockResolvedValue({ data: mockCredentials, error: null })
+                };
+              }
+              return Promise.resolve({ data: [], error: null });
+            })
+          };
+        }
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: mockVolunteers, error: null })
+          };
+        }
+        if (table === 'volunteerhistory') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: mockHistory, error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       const result = await ReportingService.generateVolunteerReport('pdf');
       
-      expect(supabase.from).toHaveBeenCalledWith('userprofile');
-      expect(supabase.select).toHaveBeenCalled();
       expect(result).toBeDefined();
+      expect(mockPDFDocument.fontSize).toHaveBeenCalled();
+      expect(mockPDFDocument.text).toHaveBeenCalled();
+      expect(mockPDFDocument.end).toHaveBeenCalled();
     });
 
     it('should generate CSV volunteer report successfully', async () => {
@@ -72,40 +127,160 @@ describe('ReportingService', () => {
           zipCode: '77000',
           skills: ['Teaching', 'Cooking'],
           preferences: 'Work outdoors',
-          availability: ['2025-07-20'],
-          usercredentials: {
-            email: 'john@example.com',
-            role: 'volunteer'
-          },
-          volunteerhistory: []
+          availability: ['2025-07-20']
         }
       ];
 
-      supabase.order.mockResolvedValue({ data: mockVolunteers, error: null });
-      supabase.single.mockResolvedValue({ data: { email: 'john@example.com', role: 'volunteer' }, error: null });
+      const mockCredentials = { email: 'john@example.com', role: 'volunteer' };
+
+      // Mock the usercredentials query
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'usercredentials') {
+          return {
+            select: jest.fn().mockImplementation((fields) => {
+              if (fields === 'uid, email, role') {
+                return Promise.resolve({ 
+                  data: [{ uid: 'user1', email: 'john@example.com', role: 'volunteer' }], 
+                  error: null 
+                });
+              } else if (fields === 'email, role') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  single: jest.fn().mockResolvedValue({ data: mockCredentials, error: null })
+                };
+              }
+              return Promise.resolve({ data: [], error: null });
+            })
+          };
+        }
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: mockVolunteers, error: null })
+          };
+        }
+        if (table === 'volunteerhistory') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: [], error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       const result = await ReportingService.generateVolunteerReport('csv');
       
       expect(result).toBe('volunteer_report.csv');
+      expect(mockCsvWriter.writeRecords).toHaveBeenCalled();
     });
 
     it('should handle database error', async () => {
-      supabase.order.mockResolvedValue({ data: null, error: { message: 'Database error' } });
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'usercredentials') {
+          return {
+            select: jest.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
+          };
+        }
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       await expect(ReportingService.generateVolunteerReport('pdf'))
         .rejects.toThrow('Failed to generate volunteer report: Database error: Database error');
     });
 
     it('should handle unsupported format', async () => {
+      const mockVolunteers = [
+        {
+          uid: 'user1',
+          fullName: 'John Doe',
+          address1: '123 Main St',
+          address2: '',
+          city: 'Houston',
+          state: 'TX',
+          zipCode: '77000',
+          skills: ['Teaching', 'Cooking'],
+          preferences: 'Work outdoors',
+          availability: ['2025-07-20']
+        }
+      ];
+
+      const mockCredentials = { email: 'john@example.com', role: 'volunteer' };
+
+      // Mock the usercredentials query
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'usercredentials') {
+          return {
+            select: jest.fn().mockImplementation((fields) => {
+              if (fields === 'uid, email, role') {
+                return Promise.resolve({ 
+                  data: [{ uid: 'user1', email: 'john@example.com', role: 'volunteer' }], 
+                  error: null 
+                });
+              } else if (fields === 'email, role') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  single: jest.fn().mockResolvedValue({ data: mockCredentials, error: null })
+                };
+              }
+              return Promise.resolve({ data: [], error: null });
+            })
+          };
+        }
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: mockVolunteers, error: null })
+          };
+        }
+        if (table === 'volunteerhistory') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: [], error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
+
       await expect(ReportingService.generateVolunteerReport('docx'))
         .rejects.toThrow('Failed to generate volunteer report: Unsupported format. Use "pdf" or "csv"');
     });
 
     it('should handle no volunteers found', async () => {
-      supabase.order.mockResolvedValue({ data: [], error: null });
+      // Mock the usercredentials query
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'usercredentials') {
+          return {
+            select: jest.fn().mockResolvedValue({ data: [], error: null })
+          };
+        }
+        if (table === 'userprofile') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: [], error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       const result = await ReportingService.generateVolunteerReport('pdf');
       expect(result).toBeDefined();
+      expect(mockPDFDocument.fontSize).toHaveBeenCalled();
+      expect(mockPDFDocument.text).toHaveBeenCalled();
+      expect(mockPDFDocument.end).toHaveBeenCalled();
     });
   });
 
@@ -119,23 +294,42 @@ describe('ReportingService', () => {
           eventdescription: 'Help collect food donations',
           location: 'Community Center',
           requiredskills: ['Teamwork', 'Communication'],
-          urgency: 'High',
-          volunteerhistory: [
-            {
-              volunteername: 'John Doe',
-              participationstatus: 'completed'
-            }
-          ]
+          urgency: 'High'
         }
       ];
 
-      supabase.order.mockResolvedValue({ data: mockEvents, error: null });
+      const mockHistory = [
+        {
+          volunteername: 'John Doe',
+          participationstatus: 'completed'
+        }
+      ];
+
+      // Mock the eventdetails query
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'eventdetails') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: mockEvents, error: null })
+          };
+        }
+        if (table === 'volunteerhistory') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: mockHistory, error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       const result = await ReportingService.generateEventReport('pdf');
       
-      expect(supabase.from).toHaveBeenCalledWith('eventdetails');
-      expect(supabase.select).toHaveBeenCalled();
       expect(result).toBeDefined();
+      expect(mockPDFDocument.fontSize).toHaveBeenCalled();
+      expect(mockPDFDocument.text).toHaveBeenCalled();
+      expect(mockPDFDocument.end).toHaveBeenCalled();
     });
 
     it('should generate CSV event report successfully', async () => {
@@ -147,20 +341,54 @@ describe('ReportingService', () => {
           eventdescription: 'Help collect food donations',
           location: 'Community Center',
           requiredskills: ['Teamwork', 'Communication'],
-          urgency: 'High',
-          volunteerhistory: []
+          urgency: 'High'
         }
       ];
 
-      supabase.order.mockResolvedValue({ data: mockEvents, error: null });
+      // Mock the eventdetails query
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'eventdetails') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: mockEvents, error: null })
+          };
+        }
+        if (table === 'volunteerhistory') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: [], error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       const result = await ReportingService.generateEventReport('csv');
       
       expect(result).toBe('event_report.csv');
+      expect(mockCsvWriter.writeRecords).toHaveBeenCalled();
     });
 
     it('should handle database error', async () => {
-      supabase.order.mockResolvedValue({ data: null, error: { message: 'Database error' } });
+      // Mock the eventdetails query to return error
+      mockSupabase.from.mockImplementation((table) => {
+        if (table === 'eventdetails') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            order: jest.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } })
+          };
+        }
+        if (table === 'volunteerhistory') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: [], error: null })
+          };
+        }
+        return {
+          select: jest.fn().mockResolvedValue({ data: [], error: null })
+        };
+      });
 
       await expect(ReportingService.generateEventReport('pdf'))
         .rejects.toThrow('Failed to generate event report: Database error: Database error');

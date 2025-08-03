@@ -104,9 +104,13 @@ class ReportingService {
                 `)
                 .order('eventdate', { ascending: false });
 
+            if (error) {
+                throw new Error(`Database error: ${error.message}`);
+            }
+
             // Fetch volunteer history for each event
             const eventsWithHistory = await Promise.all(
-                events.map(async (event) => {
+                (events || []).map(async (event) => {
                     const { data: history } = await supabase
                         .from('volunteerhistory')
                         .select('*')
@@ -114,10 +118,6 @@ class ReportingService {
                     return { ...event, volunteerhistory: history || [] };
                 })
             );
-
-            if (error) {
-                throw new Error(`Database error: ${error.message}`);
-            }
 
             if (format === 'pdf') {
                 return await this.generateEventPDF(eventsWithHistory);
