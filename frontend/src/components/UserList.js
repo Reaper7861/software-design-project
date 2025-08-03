@@ -4,6 +4,8 @@ import {
   Select, MenuItem
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import '../css/ReportingPage.css';
+
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const UserList = () => {
@@ -102,20 +104,22 @@ const UserList = () => {
     : [];
 
   return (
-    <Box sx={{ bgcolor: 'white', borderRadius: 2, boxShadow: 2, p: 3, mb: 6 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>User Management</Typography>
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          autoHeight
-          disableRowSelectionOnClick
-          pageSize={10}
-        />
-      )}
-    </Box>
+    <div class='reporting-container'>
+      <Box sx={{ bgcolor: 'white', borderRadius: 2, boxShadow: 2, p: 3, mb: 6 }}>
+        <Typography variant="h1" className="reporting-title" sx={{mb: 3, pb: 2}}>User Management</Typography>
+        {loading ? (
+          <CircularProgress />
+        ) : (
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            autoHeight
+            disableRowSelectionOnClick
+            pageSize={10}
+          />
+        )}
+      </Box>
+    </div>
   );
 };
 

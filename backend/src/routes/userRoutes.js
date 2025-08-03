@@ -52,6 +52,23 @@ router.get('/profile', verifyToken, async (req, res) => {
 router.get('/profile-status', verifyToken, async (req, res) => {
   const uid = req.user.uid;
   try {
+    // First, check the user's role
+    const { data: userCred, error: roleError } = await supabase
+      .from('usercredentials')
+      .select('role')
+      .eq('uid', uid)
+      .single();
+    
+    if (roleError) {
+      return res.status(500).json({ error: 'Failed to check user role' });
+    }
+    
+    // If user is admin, bypass profile completion requirement
+    if (userCred.role === 'administrator' || userCred.role === 'admin') {
+      return res.json({ profileCompleted: true });
+    }
+    
+    // For volunteers, check if profile is completed
     const { data: profile, error } = await supabase
       .from('userprofile')
       .select('fullName, address1, city, state, zipCode, skills, availability, profileCompleted')
