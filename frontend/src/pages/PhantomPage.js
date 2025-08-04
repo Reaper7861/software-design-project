@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 const PhantomPage = () => {
+    const { refreshProfileStatus } = useAuth();
 
     // create form with required fields
     const [formData, setFormData] = useState({
@@ -183,6 +185,9 @@ const PhantomPage = () => {
       
           const updatedProfile = await res.json();
           console.log('Profile updated:', updatedProfile);
+      
+          // Refresh profile status to update the Navbar immediately
+          await refreshProfileStatus();
       
           navigate('/profile');
         } catch (err) {

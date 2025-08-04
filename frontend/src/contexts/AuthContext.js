@@ -11,7 +11,37 @@ export const AuthContext = createContext();
 export const AuthProvider = ({children}) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [profileCompleted, setProfileCompleted] = useState(null);
     const navigate = useNavigate();
+
+    // Function to refresh profile status
+    const refreshProfileStatus = async () => {
+        try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                setProfileCompleted(null);
+                return;
+            }
+
+            const token = await currentUser.getIdToken();
+            const response = await fetch('http://localhost:8080/api/users/profile-status', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setProfileCompleted(data.profileCompleted);
+            } else {
+                console.error('Profile status check failed:', response.status, response.statusText);
+                setProfileCompleted(false);
+            }
+        } catch (error) {
+            console.error('Error checking profile status:', error);
+            setProfileCompleted(false);
+        }
+    };
 
     // Handle logout on window close
     useEffect(() => {
@@ -68,6 +98,8 @@ export const AuthProvider = ({children}) => {
                             };
                             setUser(userData);
                             localStorage.setItem('user', JSON.stringify(userData));
+                            // For newly created users, assume profile is not completed
+                            setProfileCompleted(false);
                         } else {
                             // For existing users, fetch complete data from backend
                             const response = await fetch('http://localhost:8080/api/auth/me', {
@@ -89,6 +121,9 @@ export const AuthProvider = ({children}) => {
                                 // Update both state and localStorage
                                 setUser(completeUserData);
                                 localStorage.setItem('user', JSON.stringify(completeUserData));
+                                
+                                // Check profile status for existing users
+                                await refreshProfileStatus();
                             } else if (response.status === 404) {
                                 // User exists in Firebase
                                 console.log('User not found in database yet, using basic Firebase data');
@@ -100,6 +135,7 @@ export const AuthProvider = ({children}) => {
                                 };
                                 setUser(userData);
                                 localStorage.setItem('user', JSON.stringify(userData));
+                                setProfileCompleted(false);
                             } else {
                                 // Fallback to basic Firebase user data
                                 console.error('Error fetching user data from backend:', response.status, response.statusText);
@@ -111,6 +147,7 @@ export const AuthProvider = ({children}) => {
                                 };
                                 setUser(userData);
                                 localStorage.setItem('user', JSON.stringify(userData));
+                                setProfileCompleted(false);
                             }
                         }
                     } catch (error) {
@@ -124,10 +161,12 @@ export const AuthProvider = ({children}) => {
                         };
                         setUser(userData);
                         localStorage.setItem('user', JSON.stringify(userData));
+                        setProfileCompleted(false);
                     }
                 } else {
                     // Firebase user is not authenticated
                     setUser(null);
+                    setProfileCompleted(null);
                     localStorage.removeItem('user');
                     localStorage.removeItem('authToken');
                 }
@@ -149,6 +188,7 @@ export const AuthProvider = ({children}) => {
 
     const logout = () => {
         setUser(null);
+        setProfileCompleted(null);
         localStorage.removeItem('user');
         localStorage.removeItem('authToken');
         signOut(auth).catch(error => {
@@ -158,7 +198,7 @@ export const AuthProvider = ({children}) => {
     };
 
     return(
-        <AuthContext.Provider value = {{user, setUser, login, logout, loading}}>
+        <AuthContext.Provider value = {{user, setUser, login, logout, loading, profileCompleted, refreshProfileStatus}}>
             {children}
         </AuthContext.Provider>
     );

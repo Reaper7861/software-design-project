@@ -1,56 +1,11 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext } from 'react';
 import { Button } from '@mui/material'
 import { AuthContext } from "../contexts/AuthContext";
 import {Link} from 'react-router-dom';
-import { auth } from '../firebase';
 
 // Displays title and navigation buttons
 const Navbar = () => {
-    const {user, logout} = useContext(AuthContext);
-    const [profileCompleted, setProfileCompleted] = useState(null);
-
-    useEffect(() => {
-        const checkProfileStatus = async () => {
-            try {
-                // Don't check profile status if user is not authenticated
-                const currentUser = auth.currentUser;
-                if (!currentUser) {
-                    setProfileCompleted(null);
-                    return;
-                }
-
-                // For newly created users, assume profile is not completed
-                const isNewUser = currentUser.metadata.creationTime === currentUser.metadata.lastSignInTime;
-                if (isNewUser) {
-                    console.log('Newly created user detected, assuming profile not completed');
-                    setProfileCompleted(false);
-                    return;
-                }
-
-                const idToken = await currentUser.getIdToken();
-                const response = await fetch('http://localhost:8080/api/users/profile-status', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${idToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setProfileCompleted(data.profileCompleted);
-                } else {
-                    console.error('Profile status check failed:', response.status, response.statusText);
-                    setProfileCompleted(false);
-                }
-            } catch (error) {
-                console.error('Error checking profile status:', error);
-                setProfileCompleted(false);
-            }
-        };
-
-        checkProfileStatus();
-    }, [user]);
+    const {user, logout, profileCompleted} = useContext(AuthContext);
 
     return (
         <nav style={styles.navbarOuter}>

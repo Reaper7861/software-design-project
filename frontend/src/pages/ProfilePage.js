@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const { refreshProfileStatus } = useAuth();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -215,6 +217,9 @@ const ProfilePage = () => {
       setInitialFormData(updatedProfile);
       setIsEditable(false);
       setLoading(false);
+      
+      // Refresh profile status to update the Navbar immediately
+      await refreshProfileStatus();
       
       navigate('/events');
     } catch (err) {
