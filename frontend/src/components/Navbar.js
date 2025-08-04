@@ -11,15 +11,19 @@ const Navbar = () => {
 
     useEffect(() => {
         const checkProfileStatus = async () => {
-            if (!user) {
-                setProfileCompleted(null);
-                return;
-            }
-
             try {
+                // Don't check profile status if user is not authenticated
                 const currentUser = auth.currentUser;
                 if (!currentUser) {
                     setProfileCompleted(null);
+                    return;
+                }
+
+                // For newly created users, assume profile is not completed
+                const isNewUser = currentUser.metadata.creationTime === currentUser.metadata.lastSignInTime;
+                if (isNewUser) {
+                    console.log('Newly created user detected, assuming profile not completed');
+                    setProfileCompleted(false);
                     return;
                 }
 
@@ -36,6 +40,7 @@ const Navbar = () => {
                     const data = await response.json();
                     setProfileCompleted(data.profileCompleted);
                 } else {
+                    console.error('Profile status check failed:', response.status, response.statusText);
                     setProfileCompleted(false);
                 }
             } catch (error) {

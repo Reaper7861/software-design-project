@@ -97,10 +97,12 @@ const RegisterPage = () => {
                 formData.password
             );
 
+            console.log('Firebase user created successfully:', userCredential.user.uid);
+
             const token = await userCredential.user.getIdToken();
 
             // Create user in Supabase via backend
-            await fetch('http://localhost:8080/api/users/create-profile', {
+            const profileResponse = await fetch('http://localhost:8080/api/users/create-profile', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -112,8 +114,17 @@ const RegisterPage = () => {
                 })
             });
 
+            if (!profileResponse.ok) {
+                const errorData = await profileResponse.json();
+                throw new Error(errorData.error || 'Failed to create user profile');
+            }
 
-            // Set user context to logged in
+            console.log('Backend profile creation successful');
+
+            // Small delay to make sure database operations are completed
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Set user context to logged in with basic data
             login({
                 uid: userCredential.user.uid, 
                 email: userCredential.user.email,
@@ -124,7 +135,20 @@ const RegisterPage = () => {
             navigate('/phantompage');
 
         } catch (err) {
-            setError('Registration failed ' + err.message);
+            console.error('Registration error:', err);
+            
+            // Handle specific Firebase errors
+            if (err.code === 'auth/email-already-in-use') {
+                setError('An account with this email already exists. Please try logging in instead.');
+            } else if (err.code === 'auth/invalid-email') {
+                setError('Please enter a valid email address.');
+            } else if (err.code === 'auth/weak-password') {
+                setError('Password is too weak. Please choose a stronger password.');
+            } else if (err.code === 'auth/network-request-failed') {
+                setError('Network error. Please check your internet connection and try again.');
+            } else {
+                setError('Registration failed: ' + err.message);
+            }
         } finally {
             setLoading(false);
         }

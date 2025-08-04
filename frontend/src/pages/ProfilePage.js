@@ -215,6 +215,7 @@ const ProfilePage = () => {
       setInitialFormData(updatedProfile);
       setIsEditable(false);
       setLoading(false);
+      
       navigate('/events');
     } catch (err) {
       console.error('Profile update failed:', err);

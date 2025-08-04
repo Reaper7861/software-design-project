@@ -60,6 +60,46 @@ router.get('/profile-status', verifyToken, async (req, res) => {
       .single();
     
     if (roleError) {
+      if (roleError.code === 'PGRST116') {
+        // User not found in usercredentials 
+        console.log('User not found in usercredentials, assuming volunteer role');
+        // For newly registered users, assume they are volunteers and check profile
+        const { data: profile, error: profileError } = await supabase
+          .from('userprofile')
+          .select('fullName, address1, city, state, zipCode, skills, availability, profileCompleted')
+          .eq('uid', uid)
+          .single();
+        
+        if (profileError && profileError.code === 'PGRST116') {
+          // No profile found
+          return res.json({ profileCompleted: false });
+        }
+        
+        if (profileError) {
+          console.error('Profile status check error:', profileError);
+          return res.status(500).json({ error: 'Failed to check profile status' });
+        }
+        
+        // Check if profile is completed
+        if (profile.profileCompleted === true) {
+          return res.json({ profileCompleted: true });
+        }
+        
+        // Check if all required fields are filled
+        const isCompleted = profile && 
+          profile.fullName && 
+          profile.address1 && 
+          profile.city && 
+          profile.state && 
+          profile.zipCode && 
+          profile.skills && 
+          profile.skills.length > 0 && 
+          profile.availability && 
+          profile.availability.length > 0;
+        
+        return res.json({ profileCompleted: !!isCompleted });
+      }
+      console.error('Role check error:', roleError);
       return res.status(500).json({ error: 'Failed to check user role' });
     }
     
@@ -137,7 +177,7 @@ router.post('/create-profile', verifyToken, async (req, res) => {
   const profileData = req.body;
   const {password} = req.body; 
 
-  console.log('Create profile request:', { uid, email, hasPassword: !!password });
+  console.log('Create profile request:', { uid, email, hasPassword: !!password, hasProfileData: !!profileData.fullName });
 
   try {
     // Insert into UserCredentials if not exists
@@ -148,6 +188,11 @@ router.post('/create-profile', verifyToken, async (req, res) => {
       .single();
 
     console.log('Existing user check:', { existing, findError });
+
+    if (findError && findError.code !== 'PGRST116') {
+      console.error('Error checking existing user:', findError);
+      return res.status(500).json({ error: 'Failed to check existing user', details: findError.message });
+    }
 
     if (!existing) {
       // Hash password if provided
@@ -167,26 +212,40 @@ router.post('/create-profile', verifyToken, async (req, res) => {
         console.error('Error creating user credentials:', credError);
         return res.status(500).json({ error: 'Failed to create user credentials', details: credError.message });
       }
+      
+      console.log('User credentials created successfully');
+    } else {
+      console.log('User credentials already exist');
     }
 
-    // Upsert UserProfile with profileCompleted flag
-    const { error: profileError } = await supabase
-      .from('userprofile')
-      .upsert([{ 
-        uid, 
-        ...profileData, 
-        profileCompleted: true // Mark as completed when form is submitted
-      }], { onConflict: ['uid'] });
+    // Only create profile if profileData contains actual profile information
+    if (profileData && Object.keys(profileData).length > 0 && profileData.fullName) {
+      console.log('Creating user profile with data:', { fullName: profileData.fullName, hasSkills: !!profileData.skills, hasAvailability: !!profileData.availability });
+      
+      // Upsert UserProfile with profileCompleted flag
+      const { error: profileError } = await supabase
+        .from('userprofile')
+        .upsert([{ 
+          uid, 
+          ...profileData, 
+          profileCompleted: true // Mark as completed when form is submitted
+        }], { onConflict: ['uid'] });
 
-    if (profileError) {
-      console.error('Error creating/updating profile:', profileError);
-      return res.status(500).json({ error: profileError.message });
+      if (profileError) {
+        console.error('Error creating/updating profile:', profileError);
+        return res.status(500).json({ error: profileError.message });
+      }
+      
+      console.log('User profile created/updated successfully');
+    } else {
+      console.log('No profile data provided, skipping profile creation');
     }
 
+    console.log('Create profile request completed successfully');
     res.json({ message: 'Profile created/updated successfully' });
   } catch (err) {
     console.error('Create profile error:', err);
-    res.status(500).json({ error: 'Failed to create/update profile' });
+    res.status(500).json({ error: 'Failed to create/update profile', details: err.message });
   }
 });
 

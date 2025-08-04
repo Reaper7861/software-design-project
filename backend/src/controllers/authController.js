@@ -89,10 +89,16 @@ class AuthController {
                 .select('uid, email, role')
                 .eq('uid', req.user.uid)
                 .single();
+            
             if (error) {
                 console.error('Supabase error:', error);
+                if (error.code === 'PGRST116') {
+                    // User not found in database
+                    return res.status(404).json({ error: 'User not found in database' });
+                }
                 return res.status(500).json({ error: error.message });
             }
+            
             if (!user) {
                 return res.status(404).json({ error: 'User not found in database' });
             }
@@ -116,8 +122,8 @@ class AuthController {
             });
         } catch (error) {
             console.error('Get user error: ', error);
-            res.status(404).json({
-                error: 'User not found',
+            res.status(500).json({
+                error: 'Internal server error',
                 message: error.message
             });
         }
