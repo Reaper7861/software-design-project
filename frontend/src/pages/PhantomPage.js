@@ -449,7 +449,10 @@ const PhantomPage = () => {
 
                         <input
                             type="date"
-                            onChange={(e) => addDate(e.target.value)}
+                            onChange={(e) => {
+                                addDate(e.target.value);
+                                e.target.value = '';
+                            }}
                             style={styles.input}
                         />
 
@@ -458,26 +461,37 @@ const PhantomPage = () => {
                             <p style={{ color: '#888' }}>No dates selected yet.</p>
                             )}
 
-                            {Array.isArray(formData.availability) && formData.availability.map(date => (
-                            <div key={date} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                                <span>{date}</span>
-                                <button
-                                type="button"
-                                onClick={() => removeDate(date)}
-                                style={{
-                                    marginLeft: '10px',
-                                    cursor: 'pointer',
-                                    backgroundColor: '#e74c3c',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '3px',
-                                    padding: '0 6px'
-                                }}
-                                >
-                                
-                                </button>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                {Array.isArray(formData.availability) && formData.availability.map(date => (
+                                <div key={date} style={{ 
+                                    backgroundColor: '#cce5ff',
+                                    borderRadius: '15px',
+                                    padding: '5px 10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '14px'
+                                }}>
+                                    <span>{new Date(date).toLocaleDateString()}</span>
+                                    <button
+                                    type="button"
+                                    onClick={() => removeDate(date)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '16px',
+                                        lineHeight: 1,
+                                        padding: 0,
+                                        color: 'red',
+                                        fontWeight: 'bold'
+                                    }}
+                                    >
+                                    ×
+                                    </button>
+                                </div>
+                                ))}
                             </div>
-                            ))}
                         </div>
                         </div>
 
