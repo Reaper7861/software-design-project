@@ -2263,7 +2263,7 @@ describe('userRoutes tests', () => {
       .set('Authorization', 'Bearer testtoken')
       .send(profileData);
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Failed to create/update profile' });
+    expect(res.body).toEqual({ error: 'Failed to create/update profile', details: 'Unexpected database error' });
   });
 });
 

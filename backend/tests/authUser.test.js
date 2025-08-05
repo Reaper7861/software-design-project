@@ -238,7 +238,7 @@ describe('Auth User', () => {
       const response = await request(app)
         .post('/api/users/create-profile')
         .set('Authorization', 'Bearer testtoken')
-        .send({ name: 'Fail Update' });
+        .send({ fullName: 'Fail Update' });
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Database error' });
     });
