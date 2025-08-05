@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { Button, Box } from '@mui/material';
 import { auth } from '../firebase';
 
-const ProfileForm = ({ initialData, onSubmit }) => {
+const ProfileForm = forwardRef(({ initialData, onSubmit, onClose }, ref) => {
   const [formData, setFormData] = useState(initialData || {
     fullName: '',
     address1: '',
@@ -13,9 +14,12 @@ const ProfileForm = ({ initialData, onSubmit }) => {
     preferences: '',
     availability: [],
   });
+  const [initialFormData, setInitialFormData] = useState(initialData);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [availabilityError, setAvailabilityError] = useState('');
   const dropdownRef = useRef();
 
   const skillOptions = [
@@ -55,11 +59,17 @@ const ProfileForm = ({ initialData, onSubmit }) => {
   };
 
   const addDate = (date) => {
-    if (date && !formData.availability.includes(date)) {
-      setFormData(prev => ({
-        ...prev,
-        availability: [...prev.availability, date]
-      }));
+    if (date) {
+      if (formData.availability.includes(date)) {
+        setAvailabilityError('This date is already selected.');
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          availability: [...prev.availability, date]
+        }));
+        setAvailabilityError('');
+        setSelectedDate('');
+      }
     }
   };
 
@@ -75,7 +85,6 @@ const ProfileForm = ({ initialData, onSubmit }) => {
     setLoading(true);
     setError('');
 
-    // Validation
     if (!formData.fullName.trim()) {
       setError('Full Name is required.');
       setLoading(false);
@@ -148,6 +157,7 @@ const ProfileForm = ({ initialData, onSubmit }) => {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Failed to save profile');
       }
+      setInitialFormData(formData); // Update initial data after save
       await onSubmit(formData);
     } catch (err) {
       setError(err.message || 'Failed to save profile.');
@@ -155,6 +165,11 @@ const ProfileForm = ({ initialData, onSubmit }) => {
       setLoading(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    hasUnsavedChanges: () => JSON.stringify(formData) !== JSON.stringify(initialFormData),
+    updateInitialData: (newData) => setInitialFormData(newData),
+  }));
 
   return (
     <form onSubmit={handleSubmit} style={styles.form}>
@@ -270,26 +285,42 @@ const ProfileForm = ({ initialData, onSubmit }) => {
       </div>
       <div style={styles.formGroup}>
         <label style={styles.label}>Availability</label>
-        <input
-          type="date"
-          onChange={(e) => addDate(e.target.value)}
-          style={styles.input}
-        />
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={styles.input}
+          />
+          <button
+            onClick={() => addDate(selectedDate)}
+            style={styles.addButton}
+            disabled={!selectedDate}
+          >
+            Add Date
+          </button>
+        </div>
+        {availabilityError && <div style={styles.error}>{availabilityError}</div>}
         <div style={styles.tags}>
           {formData.availability.map(date => (
             <span key={date} style={styles.tag}>
-              {new Date(date).toLocaleDateString()}
+              {new Date(date + 'T00:00:00').toLocaleDateString()}
               <button onClick={() => removeDate(date)} style={styles.removeBtn}>×</button>
             </span>
           ))}
         </div>
       </div>
-      <button type="submit" disabled={loading} style={styles.button}>
-        {loading ? 'Saving...' : 'Save Profile'}
-      </button>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+        <Button onClick={onClose} variant="text">
+          Close
+        </Button>
+        <Button type="submit" variant="contained" disabled={loading}>
+          {loading ? 'Saving...' : 'Save Profile'}
+        </Button>
+      </Box>
     </form>
   );
-};
+});
 
 const styles = {
   form: { padding: '20px' },
@@ -301,7 +332,7 @@ const styles = {
   tags: { marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '5px' },
   tag: { backgroundColor: '#e0f7fa', padding: '5px 10px', borderRadius: '15px', display: 'flex', alignItems: 'center' },
   removeBtn: { marginLeft: '5px', background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer' },
-  button: { width: '100%', padding: '10px', backgroundColor: '#1976d2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+  addButton: { padding: '8px 16px', backgroundColor: '#1976d2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
   error: { color: 'red', marginBottom: '10px' },
 };
 

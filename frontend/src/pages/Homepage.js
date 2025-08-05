@@ -1,7 +1,22 @@
 import React from 'react';
 import { Box, Button, Container, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 function HomePage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
+
+  const buttonText = user ? 'Go to Profile' : 'Get Started';
+  const buttonLink = user ? '/profile' : '/login';
+
   return (
     <>
       <Box
@@ -28,8 +43,14 @@ function HomePage() {
           }}>
             For volunteer scheduling, event management, and more.
           </Typography>
-          <Button variant="contained" color="secondary" size="large" href="/login">
-            Get Started
+          <Button
+            component={Link}
+            to={buttonLink}
+            variant="contained"
+            color="secondary"
+            size="large"
+          >
+            {buttonText}
           </Button>
         </Container>
       </Box>
