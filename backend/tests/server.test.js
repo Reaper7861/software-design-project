@@ -2321,7 +2321,9 @@ describe('app.js', () => {
 const {
   validateRegistration,
   validateProfile,
-  validateEvent
+  validateEvent,
+  validateCompleteProfile,
+validateEventUpdate
 } = require('../src/middleware/validation');
 
 describe('validation.js middleware', () => {
@@ -2425,4 +2427,396 @@ describe('validation.js middleware', () => {
     validateEvent(req, res, next);
     expect(next).toHaveBeenCalled();
   });
+
+
+  // Test: validateEvent with invalid event name (too long)
+  it('validateEvent: invalid event name too long', () => {
+    req.body = {
+      eventName: 'A'.repeat(101), // 101 characters, exceeds limit
+      eventDescription: 'Distribute food',
+      eventDate: '2026-01-01',
+      location: 'Houston',
+      requiredSkills: ['Communication'],
+      urgency: 'high'
+    };
+    validateEvent(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEvent with invalid event description (too short)
+  it('validateEvent: invalid event description too short', () => {
+    req.body = {
+      eventName: 'Food Drive',
+      eventDescription: 'Short', // Less than 10 characters
+      eventDate: '2026-01-01',
+      location: 'Houston',
+      requiredSkills: ['Communication'],
+      urgency: 'high'
+    };
+    validateEvent(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEvent with past date
+  it('validateEvent: invalid past date', () => {
+    req.body = {
+      eventName: 'Food Drive',
+      eventDescription: 'Distribute food to needy families',
+      eventDate: '2020-01-01', // Past date
+      location: 'Houston',
+      requiredSkills: ['Communication'],
+      urgency: 'high'
+    };
+    validateEvent(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEvent with invalid urgency level
+  it('validateEvent: invalid urgency level', () => {
+    req.body = {
+      eventName: 'Food Drive',
+      eventDescription: 'Distribute food to needy families',
+      eventDate: '2026-01-01',
+      location: 'Houston',
+      requiredSkills: ['Communication'],
+      urgency: 'critical' // Invalid urgency level
+    };
+    validateEvent(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with optional address2 field
+  it('validateProfile: with optional address2 field', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      address2: 'Apt 4B', // Optional field
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with address2 too long
+  it('validateProfile: address2 too long', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      address2: 'A'.repeat(101), // 101 characters, exceeds limit
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with invalid zip code format
+  it('validateProfile: invalid zip code format', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '123456', // Invalid format (6 digits)
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with valid 9-digit zip code
+  it('validateProfile: valid 9-digit zip code', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000-1234', // Valid 9-digit format
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with invalid state code (too long)
+  it('validateProfile: invalid state code too long', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TEX', // 3 characters, should be 2
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with fullName too short
+  it('validateProfile: fullName too short', () => {
+    req.body = {
+      fullName: 'A', // 1 character, minimum is 2
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateProfile with fullName too long
+  it('validateProfile: fullName too long', () => {
+    req.body = {
+      fullName: 'A'.repeat(51), // 51 characters, maximum is 50
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with email too long
+  it('validateRegistration: email too long', () => {
+    req.body = {
+      email: 'a'.repeat(70) + '@example.com', // 76+ characters total
+      password: 'Valid123!'
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with password too short
+  it('validateRegistration: password too short', () => {
+    req.body = {
+      email: 'test@example.com',
+      password: 'Short1!' // 7 characters, minimum is 8
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with password too long
+  it('validateRegistration: password too long', () => {
+    req.body = {
+      email: 'test@example.com',
+      password: 'A'.repeat(76) + '1!' // 78 characters, maximum is 75
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with password missing special character
+  it('validateRegistration: password missing special character', () => {
+    req.body = {
+      email: 'test@example.com',
+      password: 'Valid123' // Missing special character
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with password missing uppercase
+  it('validateRegistration: password missing uppercase', () => {
+    req.body = {
+      email: 'test@example.com',
+      password: 'valid123!' // Missing uppercase
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with password missing lowercase
+  it('validateRegistration: password missing lowercase', () => {
+    req.body = {
+      email: 'test@example.com',
+      password: 'VALID123!' // Missing lowercase
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateRegistration with password missing number
+  it('validateRegistration: password missing number', () => {
+    req.body = {
+      email: 'test@example.com',
+      password: 'ValidPass!' // Missing number
+    };
+    validateRegistration(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateCompleteProfile with valid data
+  it('validateCompleteProfile: valid data', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateCompleteProfile(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  // Test: validateCompleteProfile with missing required field
+  it('validateCompleteProfile: missing address1', () => {
+    req.body = {
+      fullName: 'John Smith',
+      city: 'Houston',
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateCompleteProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateCompleteProfile with invalid city (too long)
+  it('validateCompleteProfile: city too long', () => {
+    req.body = {
+      fullName: 'John Smith',
+      address1: '123 Main St',
+      city: 'A'.repeat(101), // 101 characters, exceeds limit
+      state: 'TX',
+      zipCode: '77000',
+      skills: ['Communication'],
+      availability: ['2025-01-01']
+    };
+    validateCompleteProfile(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEventUpdate with valid data
+  it('validateEventUpdate: valid data', () => {
+    req.body = {
+      eventName: 'Updated Food Drive',
+      eventDescription: 'Updated description for food distribution',
+      eventDate: '2026-02-01',
+      location: 'Updated Houston Location',
+      requiredSkills: ['Communication', 'Teamwork'],
+      urgency: 'medium'
+    };
+    validateEventUpdate(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  // Test: validateEventUpdate with missing eventName
+  it('validateEventUpdate: missing eventName', () => {
+    req.body = {
+      eventDescription: 'Updated description for food distribution',
+      eventDate: '2026-02-01',
+      location: 'Updated Houston Location',
+      requiredSkills: ['Communication'],
+      urgency: 'medium'
+    };
+    validateEventUpdate(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEventUpdate with invalid location (too long)
+  it('validateEventUpdate: location too long', () => {
+    req.body = {
+      eventName: 'Updated Food Drive',
+      eventDescription: 'Updated description for food distribution',
+      eventDate: '2026-02-01',
+      location: 'A'.repeat(201), // 201 characters, exceeds limit
+      requiredSkills: ['Communication'],
+      urgency: 'medium'
+    };
+    validateEventUpdate(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEventUpdate with invalid eventDescription (too long)
+  it('validateEventUpdate: eventDescription too long', () => {
+    req.body = {
+      eventName: 'Updated Food Drive',
+      eventDescription: 'A'.repeat(2001), // 2001 characters, exceeds limit
+      eventDate: '2026-02-01',
+      location: 'Updated Houston Location',
+      requiredSkills: ['Communication'],
+      urgency: 'medium'
+    };
+    validateEventUpdate(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Validation failed' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // Test: validateEventUpdate with low urgency level
+  it('validateEventUpdate: low urgency level', () => {
+    req.body = {
+      eventName: 'Updated Food Drive',
+      eventDescription: 'Updated description for food distribution',
+      eventDate: '2026-02-01',
+      location: 'Updated Houston Location',
+      requiredSkills: ['Communication'],
+      urgency: 'low'
+    };
+    validateEventUpdate(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
 });
+
+
+
