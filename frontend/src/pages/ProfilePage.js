@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, IconButton, Dialog } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { getAuth } from "firebase/auth";
@@ -15,7 +15,9 @@ function ProfilePage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newDate, setNewDate] = useState('');
+  const [availabilityError, setAvailabilityError] = useState('');
   const [open, setOpen] = useState(false);
+  const formRef = useRef();
 
   useEffect(() => {
     if (!user) return;
@@ -23,9 +25,9 @@ function ProfilePage() {
     const fetchData = async () => {
       try {
         const idToken = await getAuth().currentUser.getIdToken();
-        const profileRes = await axios.get('http://localhost:8080/api/users/profile', {
-          headers: { Authorization: `Bearer ${idToken}` }
-        });
+const profileRes = await axios.get('http://localhost:8080/api/users/profile', {
+  headers: { Authorization: `Bearer ${idToken}` }
+});
         setProfileData(profileRes.data.profile);
         setAvailability(profileRes.data.profile.availability || []);
 
@@ -53,9 +55,14 @@ function ProfilePage() {
 
   const handleAddDate = async () => {
     if (!newDate) return;
+    if (availability.includes(newDate)) {
+      setAvailabilityError('This date is already selected.');
+      return;
+    }
+    setAvailabilityError('');
     try {
       const idToken = await getAuth().currentUser.getIdToken();
-      const updatedAvailability = [...availability, newDate];
+const updatedAvailability = [...availability, newDate];
       await axios.post('http://localhost:8080/api/users/update-profile', {
         availability: updatedAvailability
       }, {
@@ -84,16 +91,33 @@ function ProfilePage() {
   };
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
 
-  const handleProfileSubmit = async () => {
-    const idToken = await getAuth().currentUser.getIdToken();
-    const profileRes = await axios.get('http://localhost:8080/api/users/profile', {
-      headers: { Authorization: `Bearer ${idToken}` }
-    });
-    setProfileData(profileRes.data.profile);
-    setAvailability(profileRes.data.profile.availability || []);
-    handleClose();
+  const handleClose = () => {
+    if (formRef.current && formRef.current.hasUnsavedChanges()) {
+      const confirmDiscard = window.confirm('You have unsaved changes. Are you sure you want to discard them?');
+      if (confirmDiscard) {
+        setOpen(false);
+      }
+    } else {
+      setOpen(false);
+    }
+  };
+
+  const handleProfileSubmit = async (savedData) => {
+    try {
+      const idToken = await getAuth().currentUser.getIdToken();
+      const profileRes = await axios.get('http://localhost:8080/api/users/profile', {
+        headers: { Authorization: `Bearer ${idToken}` }
+      });
+      setProfileData(profileRes.data.profile);
+      setAvailability(profileRes.data.profile.availability || []);
+      // Update the form's initial data without closing the dialog
+      if (formRef.current) {
+        formRef.current.updateInitialData(savedData);
+      }
+    } catch (err) {
+      console.error('Error refreshing profile data:', err);
+    }
   };
 
   if (loading) {
@@ -116,7 +140,7 @@ function ProfilePage() {
           <Box sx={{ mb: 2 }}>
             {availability.map((date, index) => (
               <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Typography>{new Date(date).toLocaleDateString()}</Typography>
+                <Typography>{new Date(date + 'T00:00:00').toLocaleDateString()}</Typography>
                 <IconButton onClick={() => handleRemoveDate(date)} color="error">
                   <DeleteIcon />
                 </IconButton>
@@ -130,10 +154,20 @@ function ProfilePage() {
               onChange={(e) => setNewDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
-            <Button variant="contained" onClick={handleAddDate} startIcon={<AddIcon />}>
+            <Button
+              variant="contained"
+              onClick={handleAddDate}
+              startIcon={<AddIcon />}
+              disabled={!newDate}
+            >
               Add Date
             </Button>
           </Box>
+          {availabilityError && (
+            <Typography color="error" sx={{ mt: 1 }}>
+              {availabilityError}
+            </Typography>
+          )}
         </Paper>
         <Paper sx={{ p: 2, flex: 1 }}>
           <Typography variant="h6" gutterBottom>
@@ -152,7 +186,7 @@ function ProfilePage() {
                 {assignedEvents.map((event, index) => (
                   <TableRow key={index}>
                     <TableCell>{event.eventname}</TableCell>
-                    <TableCell>{new Date(event.eventdate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(event.eventdate + 'T00:00:00').toLocaleDateString()}</TableCell>
                     <TableCell>{event.location}</TableCell>
                   </TableRow>
                 ))}
@@ -175,10 +209,10 @@ function ProfilePage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {history.map((entry, index) => (
+              { history.map((entry, index) => (
                 <TableRow key={index}>
                   <TableCell>{entry.eventname}</TableCell>
-                  <TableCell>{new Date(entry.eventdate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(entry.date + 'T00:00:00').toLocaleDateString()}</TableCell>
                   <TableCell>{entry.participationstatus}</TableCell>
                 </TableRow>
               ))}
@@ -187,7 +221,7 @@ function ProfilePage() {
         </TableContainer>
       </Paper>
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <ProfileForm initialData={profileData} onSubmit={handleProfileSubmit} />
+        <ProfileForm ref={formRef} initialData={profileData} onSubmit={handleProfileSubmit} onClose={handleClose} />
       </Dialog>
     </Box>
   );
