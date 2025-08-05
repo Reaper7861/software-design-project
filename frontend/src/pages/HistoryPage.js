@@ -153,7 +153,7 @@ const volunteerList = React.useMemo(() => {
                 <TableCell>{event.eventname}</TableCell>
                 <TableCell>{event.eventdescription}</TableCell>
                 <TableCell>{event.location}</TableCell>
-                <TableCell>{event.requiredskills}</TableCell>
+                <TableCell>{Array.isArray(event.requiredskills) ? event.requiredskills.join(', ') : event.requiredskills}</TableCell>
                 <TableCell>{event.urgency}</TableCell>
                 <TableCell>{event.eventdate && new Date(event.eventdate).toLocaleDateString('en-US', {
                     year: 'numeric',

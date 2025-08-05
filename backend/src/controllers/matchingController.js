@@ -37,7 +37,7 @@ const matchVolunteerHandler = async (req, res) => {
         requiredskills: eventDetails.requiredskills,
         urgency: eventDetails.urgency,
         eventdate: eventDetails.eventdate,
-        participationstatus: 'assigned'
+        participationstatus: 'Assigned'
       }])
       .select();
     if (error) {
