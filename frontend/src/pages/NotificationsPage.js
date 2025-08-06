@@ -99,7 +99,15 @@ useEffect(() => {
         name: n.sender_uid === user.uid
           ? (n.receiver?.fullName || 'Recipient')
           : (n.sender?.fullName || 'Sender'),
-        time: new Date(n.timestamp).toLocaleString(),
+        time: new Date(n.timestamp + 'Z').toLocaleString('en-US', { 
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric',
+          hour12: true
+        }),
       }));
 
       setNotifications(mappedNotifications);
@@ -168,7 +176,15 @@ useEffect(() => {
       email: 'system@firebase.com',
       subject: payload.notification?.title || 'No subject',
       message: payload.notification?.body || '',
-      time: new Date().toLocaleString()
+      time: new Date().toLocaleString('en-US', { 
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true
+      })
     };
 
     setSentNotifications((prev) => [incoming, ...prev]);
@@ -233,7 +249,15 @@ useEffect(() => {
           ...n,
           type: n.sender_uid === user.uid ? 'sent' : 'received',
           name: n.sender_uid === user.uid ? (n.receiver_name || 'Recipient') : (n.sender_name || 'Sender'),
-          time: new Date(n.timestamp).toLocaleString(),
+          time: new Date(n.timestamp + 'Z').toLocaleString('en-US', { 
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hour12: true
+          }),
         }));
         setNotifications(mappedNotifications);
       } catch (err) {
