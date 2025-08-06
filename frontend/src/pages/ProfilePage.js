@@ -9,6 +9,21 @@ import ProfileForm from '../components/ProfileForm';
 
 function ProfilePage() {
   const { user, refreshProfileStatus } = useAuth();
+  
+  // Helper function to format dates
+  const formatDate = (dateValue) => {
+    if (!dateValue) {
+      return 'No date';
+    }
+    try {
+      const dateString = dateValue.includes('T') ? dateValue : dateValue + 'T00:00:00';
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', dateValue, error);
+      return 'Invalid date';
+    }
+  };
   const [profileData, setProfileData] = useState(null);
   const [availability, setAvailability] = useState([]);
   const [assignedEvents, setAssignedEvents] = useState([]);
@@ -31,17 +46,16 @@ const profileRes = await axios.get('http://localhost:8080/api/users/profile', {
         setProfileData(profileRes.data.profile);
         setAvailability(profileRes.data.profile.availability || []);
 
-        const assignedRes = await axios.get('http://localhost:8080/api/matching', {
-          headers: { Authorization: `Bearer ${idToken}` }
-        });
-        const userAssigned = assignedRes.data.matches.filter(m => m.uid === user.uid && m.participationstatus === 'assigned');
-        setAssignedEvents(userAssigned);
-
-        const historyRes = await axios.get('http://localhost:8080/api/volunteer-history', {
-          headers: { Authorization: `Bearer ${idToken}` }
-        });
-        const userHistory = historyRes.data.filter(h => h.uid === user.uid);
-        setHistory(userHistory);
+          // Fetch volunteer history and filter for assigned events
+          const historyRes = await axios.get('http://localhost:8080/api/volunteer-history', {
+            headers: { Authorization: `Bearer ${idToken}` }
+          });
+          const userHistory = historyRes.data.filter(h => h.uid === user.uid);
+          setHistory(userHistory);
+         
+         // Filter assigned events from volunteer history
+         const userAssigned = userHistory.filter(h => h.participationstatus === 'Assigned');
+         setAssignedEvents(userAssigned);
 
         setLoading(false);
       } catch (err) {
@@ -193,13 +207,13 @@ const updatedAvailability = [...availability, newDate];
                 </TableRow>
               </TableHead>
               <TableBody>
-                {assignedEvents.map((event, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{event.eventname}</TableCell>
-                    <TableCell>{new Date(event.eventdate + 'T00:00:00').toLocaleDateString()}</TableCell>
-                    <TableCell>{event.location}</TableCell>
-                  </TableRow>
-                ))}
+                                 {assignedEvents.map((event, index) => (
+                   <TableRow key={index}>
+                     <TableCell>{event.eventname}</TableCell>
+                     <TableCell>{formatDate(event.eventdate)}</TableCell>
+                     <TableCell>{event.location}</TableCell>
+                   </TableRow>
+                 ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -218,15 +232,15 @@ const updatedAvailability = [...availability, newDate];
                 <TableCell>Status</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              { history.map((entry, index) => (
-                <TableRow key={index}>
-                  <TableCell>{entry.eventname}</TableCell>
-                  <TableCell>{new Date(entry.date + 'T00:00:00').toLocaleDateString()}</TableCell>
-                  <TableCell>{entry.participationstatus}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+                           <TableBody>
+                                   { history.map((entry, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{entry.eventname}</TableCell>
+                      <TableCell>{formatDate(entry.eventdate)}</TableCell>
+                      <TableCell>{entry.participationstatus}</TableCell>
+                    </TableRow>
+                  ))}
+               </TableBody>
           </Table>
         </TableContainer>
       </Paper>
