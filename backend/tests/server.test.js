@@ -746,12 +746,37 @@ describe('profileRoutes', () => {
 
 describe("Volunteer History Route", () => {
   it("should return volunteer history data", async () => {
-    // Mock Supabase response for volunteer history
-    mockSupabase.from.mockReturnValue({
-      select: jest.fn().mockResolvedValue({
-        data: mockVolunteerHistory,
-        error: null
-      })
+    // Mock Supabase response for volunteer history with event details
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'volunteerhistory') {
+        return {
+          select: jest.fn().mockResolvedValue({
+            data: mockVolunteerHistory,
+            error: null
+          })
+        };
+      } else if (table === 'eventdetails') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: {
+                  eventname: 'Test Event',
+                  eventdescription: 'Test Description',
+                  requiredskills: ['Teamwork'],
+                  eventdate: '2025-08-08'
+                },
+                error: null
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+      };
     });
 
     const res = await request(app).get("/api/volunteer-history");
@@ -773,6 +798,59 @@ describe("Volunteer History Route", () => {
         participationstatus: expect.any(String),
       })
     );
+  });
+
+  it("should handle database error when fetching volunteer history", async () => {
+    // Mock Supabase to return error
+    mockSupabase.from.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Database connection failed' }
+      })
+    });
+
+    const res = await request(app).get("/api/volunteer-history");
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toHaveProperty("error", "Failed to fetch volunteer history");
+  });
+
+  it("should update participation status successfully", async () => {
+    const eventId = 1;
+    const uid = 'test-uid';
+    const status = 'Attended';
+
+    // Mock Supabase for status update
+    mockSupabase.from.mockReturnValue({
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [{ participationstatus: status }],
+            error: null
+          })
+        })
+      })
+    });
+
+    const res = await request(app)
+      .put(`/api/volunteer-history/${eventId}/${uid}/status`)
+      .send({ status });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty("message", "Participation status updated successfully");
+  });
+
+  it("should return 400 for invalid status", async () => {
+    const eventId = 1;
+    const uid = 'test-uid';
+    const status = 'InvalidStatus';
+
+    const res = await request(app)
+      .put(`/api/volunteer-history/${eventId}/${uid}/status`)
+      .send({ status });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty("error", "Invalid status");
   });
 });
 

@@ -64,14 +64,35 @@ class ReportingService {
                 return format === 'pdf' ? await this.generateVolunteerPDF([]) : await this.generateVolunteerCSV([]);
             }
 
-            // Fetch volunteer history for each volunteer
+            // Fetch volunteer history for each volunteer with event details
             const volunteersWithHistory = await Promise.all(
                 filteredVolunteers.map(async (volunteer) => {
                     const { data: history } = await supabase
                         .from('volunteerhistory')
                         .select('*')
                         .eq('uid', volunteer.uid);
-                    return { ...volunteer, volunteerhistory: history || [] };
+                    
+                    // Get event details for each history entry
+                    const historyWithEventDetails = await Promise.all(
+                        (history || []).map(async (historyEntry) => {
+                            if (historyEntry.eventid) {
+                                const { data: eventDetails } = await supabase
+                                    .from('eventdetails')
+                                    .select('eventname, eventdate')
+                                    .eq('eventid', historyEntry.eventid)
+                                    .single();
+                                
+                                return {
+                                    ...historyEntry,
+                                    eventname: eventDetails?.eventname || historyEntry.eventname,
+                                    eventdate: eventDetails?.eventdate || historyEntry.eventdate
+                                };
+                            }
+                            return historyEntry;
+                        })
+                    );
+                    
+                    return { ...volunteer, volunteerhistory: historyWithEventDetails };
                 })
             );
 
