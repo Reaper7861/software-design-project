@@ -57,6 +57,8 @@ const NotificationSystem = () => {
   };
 
 
+
+
 /******USER AUTHENTICATION *****/
 useEffect(() => {
   const unsubscribeAuth = onAuthStateChanged(getAuth(), (user) => {
@@ -89,7 +91,7 @@ useEffect(() => {
 
       const data = await res.json();
 
-      console.log("Raw notifications data from backend:", data);
+
 
       const mappedNotifications = data.map(n => ({
         ...n,
@@ -155,11 +157,8 @@ const filteredVolunteers = volunteerList.filter(vol =>
 
 useEffect(() => {
   const unsubscribe = onMessage(messaging, (payload) => {
-    console.log('Message received in foreground:', payload);
-
     const title = payload.notification?.title || 'Notification';
     const body = payload.notification?.body || '';
-
     showToast(title, body); // shows the toast banner !!!!!!!!!!!!!!!!!!!!!!!
 
     ///fix later
@@ -300,6 +299,8 @@ return (
             }}>
             Send
           </Button>
+
+
 
           
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

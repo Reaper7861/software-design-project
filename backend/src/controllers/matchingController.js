@@ -31,12 +31,12 @@ const matchVolunteerHandler = async (req, res) => {
         uid: userId,
         volunteername: volunteerProfile.fullName,
         eventid: eventId,
-        eventname: eventDetails.eventname,
-        eventdescription: eventDetails.eventdescription,
+        eventname: eventDetails.eventName,
+        eventdescription: eventDetails.eventDescription,
         location: eventDetails.location,
-        requiredskills: eventDetails.requiredskills,
+        requiredskills: eventDetails.requiredSkills,
         urgency: eventDetails.urgency,
-        eventdate: eventDetails.eventdate,
+        eventdate: eventDetails.eventDate,
         participationstatus: 'Assigned'
       }])
       .select();
@@ -72,7 +72,10 @@ const getAllMatchesAndVolunteersHandler = async (req, res) => {
         )
       `)
       .eq('role', 'volunteer');
-    if (volError) throw volError;
+    if (volError) {
+      console.error('Error fetching volunteers:', volError);
+      throw volError;
+    }
 
     // Filter out volunteers with no profile
     const filteredVolunteers = (volunteers || []).filter(v => v.profile);
@@ -80,21 +83,12 @@ const getAllMatchesAndVolunteersHandler = async (req, res) => {
     // Get all matches with user email
     const { data: matches, error: matchError } = await supabase
       .from('volunteerhistory')
-      .select(`
-        id,
-        uid,
-        volunteername,
-        eventid,
-        eventname,
-        eventdescription,
-        location,
-        requiredskills,
-        urgency,
-        eventdate,
-        participationstatus,
-        user:uid (email)
-      `);
-    if (matchError) throw matchError;
+      .select('*');
+    if (matchError) {
+      console.error('Error fetching matches:', matchError);
+      throw matchError;
+    }
+
 
     res.json({ success: true, volunteers: filteredVolunteers, matches });
   } catch (err) {

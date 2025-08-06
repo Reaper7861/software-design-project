@@ -41,6 +41,8 @@ router.post('/send', verifyToken, async (req, res) => {
   const { toUid, title, body } = req.body;
   const fromUid = req.user.uid;  // From the verified token middleware
 
+
+
   if (!toUid || !title || !body) {
     return res.status(400).json({ error: 'Missing recipient uid, title, or body' });
   }
@@ -60,7 +62,7 @@ router.post('/send', verifyToken, async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch FCM token' });
   }
 
-  console.log('FCM Token is: ', tokens);
+
 
   //lack of token, abort sending a notification until token refresh
   if (!tokens || !tokens.fcm_token) {

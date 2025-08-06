@@ -171,6 +171,7 @@ const MatchPage = () => {
     const fetchData = async () => {
       try {
         const volunteerRes = await axios.get('http://localhost:8080/api/matching');
+
         setVolunteers(volunteerRes.data.volunteers);
         setMatches(volunteerRes.data.matches || []);
 
@@ -230,7 +231,7 @@ const MatchPage = () => {
           }),
         });
 
-        console.log('Notification sent to volunteer');
+
         /** End notification stuff **/
 
       } else {
@@ -242,7 +243,13 @@ const MatchPage = () => {
     }
   };
 
-  const handleRemoveMatch = async (userId, eventId) => {
+  const handleRemoveMatch = async (userId, eventId, eventName) => {
+    // If eventName is null or undefined, try to find it from the events list
+    let finalEventName = eventName;
+    if (!eventName) {
+      const event = events.find(e => e.eventid === parseInt(eventId));
+      finalEventName = event ? event.eventname : `ID: ${eventId}`;
+    }
     try {
       const res = await axios.delete('http://localhost:8080/api/matching', {
         data: { userId, eventId }
@@ -253,6 +260,7 @@ const MatchPage = () => {
         //** Send notification to volunteer about removal **//
         try {
           const idToken = await user.getIdToken();
+          const notificationBody = `You have been removed from the event: ${finalEventName}. If you have questions, please contact the coordinator.`;
           await fetch('http://localhost:8080/api/notifications/send', {
             method: 'POST',
             headers: {
@@ -262,7 +270,7 @@ const MatchPage = () => {
             body: JSON.stringify({
               toUid: userId,
               title: 'You have been removed from an event',
-              body: `You have been removed from event ID: ${eventId}. If you have questions, please contact the coordinator.`,
+              body: notificationBody,
             }),
           });
         } catch (notifError) {
@@ -618,7 +626,7 @@ const MatchPage = () => {
                                                               <Button
                                                                   variant="outlined"
                                                                   color="error"
-                                                                  onClick={() => handleRemoveMatch(m.uid, m.eventid)}
+                                                                  onClick={() => handleRemoveMatch(m.uid, m.eventid, m.eventname)}
                                                               >
                                                                   Unmatch
                                                               </Button>
