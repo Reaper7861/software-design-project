@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from "../contexts/AuthContext";
+import { getFcmToken } from '../utils/notifications';
 
 
 // Registration form with email, password, and confirm pasword confirmation
@@ -130,6 +131,22 @@ const RegisterPage = () => {
                 email: userCredential.user.email,
                 role: "volunteer"
             });
+
+            // Register FCM token after successful account creation
+            const fcmToken = await getFcmToken();
+            if (fcmToken) {
+                await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ token: fcmToken })
+                });
+                console.log('FCM token sent after registration', fcmToken);
+            } else {
+                console.warn('No FCM token retrieved after registration');
+            }
 
             // Navigate to phantom page
             navigate('/phantompage');

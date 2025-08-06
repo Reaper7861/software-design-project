@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
@@ -6,6 +6,9 @@ import './App.css' // Import App.css for its appearance/styling
 import { AdminRoute } from './components/AdminRoute';
 import { PrivateRoute } from './components/PrivateRoute';
 import { ProfileRoute } from './components/ProfileRoute';
+import { auth } from './firebase';
+import { getFcmToken } from './utils/notifications';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // Import all page components
 import LoginPage from './pages/LoginPage'
@@ -69,6 +72,33 @@ const theme = createTheme({
 
 // Main app component
 function App() {
+  // Register FCM token when user is authenticated
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const fcmToken = await getFcmToken();
+          if (fcmToken) {
+            const idToken = await user.getIdToken();
+            await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`
+              },
+              body: JSON.stringify({ token: fcmToken })
+            });
+            console.log('FCM token refreshed on app initialization', fcmToken);
+          }
+        } catch (error) {
+          console.warn('Failed to register FCM token on app initialization:', error);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     
     // Wrap app with authentication context

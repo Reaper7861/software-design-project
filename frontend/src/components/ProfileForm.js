@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } f
 import { Button, Box } from '@mui/material';
 import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { getFcmToken } from '../utils/notifications';
 
 const ProfileForm = forwardRef(({ initialData, onSubmit, onClose }, ref) => {
   const { refreshProfileStatus } = useAuth();
@@ -163,6 +164,22 @@ const ProfileForm = forwardRef(({ initialData, onSubmit, onClose }, ref) => {
       
       // Refresh profile status to update caution symbol immediately
       await refreshProfileStatus();
+      
+      // Register FCM token after successful profile save
+      const fcmToken = await getFcmToken();
+      if (fcmToken) {
+        await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ token: fcmToken })
+        });
+        console.log('FCM token sent after profile completion', fcmToken);
+      } else {
+        console.warn('No FCM token retrieved after profile completion');
+      }
       
       await onSubmit(formData);
     } catch (err) {
