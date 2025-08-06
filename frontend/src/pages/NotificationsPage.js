@@ -424,7 +424,20 @@ return (
                 {filteredVolunteers.length > 0 ? (
                   filteredVolunteers.map((vol, index) => (
                     <React.Fragment key={index}>
-                      <ListItem button onClick={() => handleSelectVolunteer(vol)}>
+                      <ListItem 
+                        component="button" 
+                        onClick={() => handleSelectVolunteer(vol)}
+                        sx={{
+                          width: '100%',
+                          textAlign: 'left',
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                          }
+                        }}
+                      >
                         <ListItemText primary={vol.fullName} secondary={vol.email} />
                       </ListItem>
                       <Divider />

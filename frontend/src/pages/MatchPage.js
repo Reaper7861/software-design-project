@@ -448,12 +448,7 @@ const MatchPage = () => {
                   const skillMatchCount = selectedVolunteer ? countMatchingSkills(selectedVolunteer, e) : 0;
                   
                   return (
-                    <Tooltip 
-                      title={selectedVolunteer ? compatibilityDetails : ''} 
-                      placement="left"
-                      arrow
-                    >
-                      <TableRow
+                    <TableRow
                       key={e.eventid}
                       hover
                       selected={selectedEvent?.eventid === e.eventid}
@@ -493,7 +488,6 @@ const MatchPage = () => {
                     <TableCell>{e.urgency}</TableCell>
                     <TableCell>{e.eventdate}</TableCell>
                   </TableRow>
-                    </Tooltip>
                   );
                 })}
               </TableBody>
@@ -547,7 +541,7 @@ const MatchPage = () => {
                       }
                       acc[m.eventid].push(m);
                       return acc;
-                  }, {})).map(([eventid, eventMatches]) => {
+                  }, {})).map(([eventid, eventMatches], index) => {
                       // Find the event details from the events state
                       const event = events.find(e => e.eventid === parseInt(eventid));
 
@@ -613,7 +607,7 @@ const MatchPage = () => {
                                                   const volunteer = volunteers.find(v => v.uid === m.uid);
 
                                                   return volunteer ? (
-                                                      <TableRow key={m.uid}>
+                                                      <TableRow key={`volunteer-${m.uid}`}>
                                                           <TableCell>{volunteer.profile?.fullName || 'N/A'}</TableCell>
                                                           <TableCell>{volunteer.profile?.address1 || 'N/A'}</TableCell>
                                                           <TableCell>{volunteer.profile?.city || 'N/A'}</TableCell>
@@ -633,7 +627,7 @@ const MatchPage = () => {
                                                           </TableCell>
                                                       </TableRow>
                                                   ) : (
-                                                      <TableRow key={m.uid}>
+                                                      <TableRow key={`not-found-${m.uid}`}>
                                                           <TableCell colSpan={9}>Volunteer details not found for UID: {m.uid}</TableCell>
                                                       </TableRow>
                                                   );
