@@ -20,7 +20,18 @@ const EventManagement = () => {
   const [error, setError] = useState('');
   const itemsPerPage = 5;
 
-  const availableSkills = ['First Aid', 'Event Planning', 'Teamwork', 'Communication', 'Logistics'];
+  const availableSkills = [
+    'Communication',
+    'Teamwork', 
+    'Leadership',
+    'Event Planning',
+    'Fundraising',
+    'Public Speaking',
+    'Teaching/Tutoring',
+    'Childcare',
+    'Elderly Support',
+    'Community Outreach'
+  ];
   const urgencyOptions = ['Low', 'Medium', 'High'];
 
   useEffect(() => {
