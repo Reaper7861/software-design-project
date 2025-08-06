@@ -97,8 +97,8 @@ useEffect(() => {
         ...n,
         type: n.sender_uid === user.uid ? 'sent' : 'received',
         name: n.sender_uid === user.uid
-          ? (n.receiver?.fullName || 'Recipient')
-          : (n.sender?.fullName || 'Sender'),
+          ? (n.receiver?.fullName || 'Unknown Recipient')
+          : (n.sender?.fullName || 'Unknown Sender'),
         time: new Date(n.timestamp + 'Z').toLocaleString('en-US', { 
           year: 'numeric',
           month: 'numeric',
@@ -248,7 +248,7 @@ useEffect(() => {
         const mappedNotifications = data.map(n => ({
           ...n,
           type: n.sender_uid === user.uid ? 'sent' : 'received',
-          name: n.sender_uid === user.uid ? (n.receiver_name || 'Recipient') : (n.sender_name || 'Sender'),
+          name: n.sender_uid === user.uid ? (n.receiver?.fullName || 'Unknown Recipient') : (n.sender?.fullName || 'Unknown Sender'),
           time: new Date(n.timestamp + 'Z').toLocaleString('en-US', { 
             year: 'numeric',
             month: 'numeric',
