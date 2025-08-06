@@ -77,7 +77,6 @@ const theme = createTheme({
   },
 });
 
-
 // Main app component
 function App() {
   const [toast, setToast] = useState({ open: false, title: "", body: "" });
@@ -92,7 +91,7 @@ function App() {
           const fcmToken = await getFcmToken();
           if (fcmToken) {
             const idToken = await user.getIdToken();
-            await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
+            const response = await fetch('http://localhost:8080/api/notifications/save-fcm-token', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -100,7 +99,13 @@ function App() {
               },
               body: JSON.stringify({ token: fcmToken })
             });
-            console.log('FCM token refreshed on app initialization', fcmToken);
+            if (response.ok) {
+              console.log('FCM token saved successfully:', fcmToken);
+            } else {
+              console.error('Failed to save FCM token:', response.status, await response.text());
+            }
+          } else {
+            console.warn('No FCM token retrieved for user:', user.uid);
           }
         } catch (error) {
           console.warn('Failed to register FCM token on app initialization:', error);
@@ -110,7 +115,6 @@ function App() {
 
     return () => unsubscribe();
   }, []);
-
 
   //for push notifications//////////////////////
    const handleIncomingPayload = (payload) => {
@@ -122,13 +126,19 @@ function App() {
       // fallback: small hash from title+body+time
       `${payload?.notification?.title || ""}::${payload?.notification?.body || ""}`;
 
-    if (id && seenIdsRef.current.has(id)) return; // already shown
+    if (id && seenIdsRef.current.has(id)) {
+      console.log('Duplicate notification ignored:', id);
+      return; // already shown
+    }
     if (id) seenIdsRef.current.add(id);
 
     const title = payload?.notification?.title || payload?.data?.title || "Notification";
     const body = payload?.notification?.body || payload?.data?.body || "";
 
+    console.log('Displaying notification:', { title, body });
     setToast({ open: true, title, body });
+    // Temporary alert for debugging
+    // alert(`Notification received: ${title} - ${body}`);
   };
 
   useEffect(() => {
@@ -136,7 +146,7 @@ function App() {
     let unsubscribeOnMessage;
     try {
       unsubscribeOnMessage = onMessage(messaging, (payload) => {
-        console.log("FCM foreground message:", payload);
+        console.log("FCM foreground message received:", JSON.stringify(payload, null, 2));
         handleIncomingPayload(payload);
       });
     } catch (err) {
@@ -146,16 +156,23 @@ function App() {
     // 2) messages posted from the service worker (background -> client)
     const swHandler = (event) => {
       const data = event?.data;
-      if (!data) return;
+      if (!data) {
+        console.warn('Received empty message from service worker');
+        return;
+      }
       // our SW posts { type: 'FCM_MESSAGE', payload }
       if (data.type === "FCM_MESSAGE" && data.payload) {
-        console.log("Received SW message in page:", data.payload);
+        console.log("Processing FCM message from service worker:", JSON.stringify(data.payload, null, 2));
         handleIncomingPayload(data.payload);
+      } else {
+        console.log('Unhandled service worker message:', data);
       }
     };
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", swHandler);
+    } else {
+      console.warn('Service Worker not supported in this browser');
     }
 
     // cleanup
