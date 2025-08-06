@@ -8,7 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ProfileForm from '../components/ProfileForm';
 
 function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshProfileStatus } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [availability, setAvailability] = useState([]);
   const [assignedEvents, setAssignedEvents] = useState([]);
@@ -70,6 +70,9 @@ const updatedAvailability = [...availability, newDate];
       });
       setAvailability(updatedAvailability);
       setNewDate('');
+      
+      // Refresh profile status to update caution symbol immediately
+      await refreshProfileStatus();
     } catch (err) {
       console.error('Error updating availability:', err);
     }
@@ -85,6 +88,9 @@ const updatedAvailability = [...availability, newDate];
         headers: { Authorization: `Bearer ${idToken}` }
       });
       setAvailability(updatedAvailability);
+      
+      // Refresh profile status to update caution symbol
+      await refreshProfileStatus();
     } catch (err) {
       console.error('Error updating availability:', err);
     }
@@ -111,6 +117,10 @@ const updatedAvailability = [...availability, newDate];
       });
       setProfileData(profileRes.data.profile);
       setAvailability(profileRes.data.profile.availability || []);
+      
+      // Refresh profile status to update caution symbol
+      await refreshProfileStatus();
+      
       // Update the form's initial data without closing the dialog
       if (formRef.current) {
         formRef.current.updateInitialData(savedData);

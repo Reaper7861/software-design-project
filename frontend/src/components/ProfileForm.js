@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Button, Box } from '@mui/material';
 import { auth } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfileForm = forwardRef(({ initialData, onSubmit, onClose }, ref) => {
+  const { refreshProfileStatus } = useAuth();
   const [formData, setFormData] = useState(initialData || {
     fullName: '',
     address1: '',
@@ -158,6 +160,10 @@ const ProfileForm = forwardRef(({ initialData, onSubmit, onClose }, ref) => {
         throw new Error(errorData.error || 'Failed to save profile');
       }
       setInitialFormData(formData); // Update initial data after save
+      
+      // Refresh profile status to update caution symbol immediately
+      await refreshProfileStatus();
+      
       await onSubmit(formData);
     } catch (err) {
       setError(err.message || 'Failed to save profile.');

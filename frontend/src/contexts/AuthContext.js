@@ -84,12 +84,32 @@ export const AuthProvider = ({children}) => {
                         // Get the user's token
                         const token = await firebaseUser.getIdToken();
                         
-                        // Check if this is a newly created user by looking at creation time
-                        const isNewUser = firebaseUser.metadata.creationTime === firebaseUser.metadata.lastSignInTime;
+                        // Always try to fetch complete data from backend first
+                        const response = await fetch('http://localhost:8080/api/auth/me', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
                         
-                        if (isNewUser) {
-                            // Use basic data and skip auth/me call
-                            console.log('Newly created user detected, using basic Firebase data');
+                        if (response.ok) {
+                            const userData = await response.json();
+                            const completeUserData = {
+                                uid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                displayName: firebaseUser.displayName,
+                                role: userData.user.role,
+                                profile: userData.user.profile
+                            };
+                            
+                            // Update both state and localStorage
+                            setUser(completeUserData);
+                            localStorage.setItem('user', JSON.stringify(completeUserData));
+                            
+                            // Always check profile status for all users
+                            await refreshProfileStatus();
+                        } else if (response.status === 404) {
+                            // User exists in Firebase but not in database yet
+                            console.log('User not found in database yet, using basic Firebase data');
                             const userData = {
                                 uid: firebaseUser.uid,
                                 email: firebaseUser.email,
@@ -98,57 +118,19 @@ export const AuthProvider = ({children}) => {
                             };
                             setUser(userData);
                             localStorage.setItem('user', JSON.stringify(userData));
-                            // For newly created users, assume profile is not completed
                             setProfileCompleted(false);
                         } else {
-                            // For existing users, fetch complete data from backend
-                            const response = await fetch('http://localhost:8080/api/auth/me', {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
-                                }
-                            });
-                            
-                            if (response.ok) {
-                                const userData = await response.json();
-                                const completeUserData = {
-                                    uid: firebaseUser.uid,
-                                    email: firebaseUser.email,
-                                    displayName: firebaseUser.displayName,
-                                    role: userData.user.role,
-                                    profile: userData.user.profile
-                                };
-                                
-                                // Update both state and localStorage
-                                setUser(completeUserData);
-                                localStorage.setItem('user', JSON.stringify(completeUserData));
-                                
-                                // Check profile status for existing users
-                                await refreshProfileStatus();
-                            } else if (response.status === 404) {
-                                // User exists in Firebase
-                                console.log('User not found in database yet, using basic Firebase data');
-                                const userData = {
-                                    uid: firebaseUser.uid,
-                                    email: firebaseUser.email,
-                                    displayName: firebaseUser.displayName,
-                                    role: 'volunteer' 
-                                };
-                                setUser(userData);
-                                localStorage.setItem('user', JSON.stringify(userData));
-                                setProfileCompleted(false);
-                            } else {
-                                // Fallback to basic Firebase user data
-                                console.error('Error fetching user data from backend:', response.status, response.statusText);
-                                const userData = {
-                                    uid: firebaseUser.uid,
-                                    email: firebaseUser.email,
-                                    displayName: firebaseUser.displayName,
-                                    role: 'volunteer' 
-                                };
-                                setUser(userData);
-                                localStorage.setItem('user', JSON.stringify(userData));
-                                setProfileCompleted(false);
-                            }
+                            // Fallback to basic Firebase user data
+                            console.error('Error fetching user data from backend:', response.status, response.statusText);
+                            const userData = {
+                                uid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                displayName: firebaseUser.displayName,
+                                role: 'volunteer' 
+                            };
+                            setUser(userData);
+                            localStorage.setItem('user', JSON.stringify(userData));
+                            setProfileCompleted(false);
                         }
                     } catch (error) {
                         console.error('Error fetching user data from backend:', error);
