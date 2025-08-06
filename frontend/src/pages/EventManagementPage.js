@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText } from '@mui/material';
 import axios from 'axios';
+import '../css/ReportingPage.css';
+
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
@@ -215,10 +217,13 @@ const EventManagement = () => {
   const paginatedEvents = events.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <Box sx={{ display: 'flex', p: 3, gap: 2 }}>
+    <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
+  <div className='any-container'>
+    <Typography variant='h1' textAlign={'center'}>Event Management</Typography>
+    <Box sx={{ display: 'flex', p: 1, gap: 2 }}>
       {/* Left: Form */}
       <Paper sx={{ flex: 1, p: 2, minHeight: 600 }}>
-        <Typography variant="h6" gutterBottom>{formData.id ? 'Edit Event' : 'Create Event'}</Typography>
+        <Typography variant="h4" gutterBottom>{formData.id ? 'Edit Event' : 'Create Event'}</Typography>
         {error && (
           <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>
         )}
@@ -318,7 +323,7 @@ const EventManagement = () => {
 
       {/* Right: Event List */}
       <Paper sx={{ flex: 1, p: 2, minHeight: 600 }}>
-        <Typography variant="h6" gutterBottom>Events</Typography>
+        <Typography variant="h4" gutterBottom>Events</Typography>
         {loading ? (
           <Typography>Loading...</Typography>
         ) : error && !events.length ? (
@@ -399,6 +404,8 @@ const EventManagement = () => {
           </>
         )}
       </Paper>
+    </Box>
+    </div>
     </Box>
   );
 };

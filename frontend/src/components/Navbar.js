@@ -11,7 +11,7 @@ const Navbar = () => {
         <nav style={styles.navbarOuter}>
             <div style={styles.titlesContainer}>
                 {/* Title */}
-                <h2 style={styles.title}>ServeTogether</h2>
+                <h1 style={styles.title}>ServeTogether</h1>
             </div>
                 <div style={styles.navbar}>
                     <div style={styles.left}>
@@ -107,8 +107,9 @@ const styles = {
     title: {
         margin: 0,
         textAlign: 'center',
-        padding: '0.5rem 0',
-        fontSize: '35px'
+        padding: '0.25rem 0',
+        fontSize: '35px',
+        fontFamily: '"Segoe UI", sans-serif'
     },
 
     incompleteProfile: {

@@ -1,3 +1,14 @@
+:root {
+    --primary: #2c3e50;
+    --secondary: #3498db;
+    --accent: #e74c3c;
+    --light: #ecf0f1;
+    --dark: #2c3e50;
+    --gray: #95a5a6;
+    --success: #27ae60;
+    --taupe: #483C32;
+  }
+
 .reporting-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -12,6 +23,63 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     padding: 40px;
 }
+
+.any-container {
+    max-width: 99%;
+    margin: 0 auto;
+    /*background: white;*/
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    /*padding: 40px;*/
+  background: rgba(255, 255, 255, 0.8);         /* semi-transparent white */
+  backdrop-filter: blur(10px);                  /* blur background */
+  -webkit-backdrop-filter: blur(10px);          /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.3);   /* faint white border */  
+  padding: 40px;                                /* inner spacing */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);    /* soft shadow */
+}
+
+.any-container h1 {
+    color: #333333; /*#333;*/
+    margin-bottom: 15px;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.any-container h2 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+}
+
+.any-container h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+}
+
+.any-container h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.any-notif-sidebar {
+    width: 250px;
+    margin: 25px;
+    /*background: white;*/
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    /*padding: 40px;*/
+  background: rgba(255, 255, 255, 0.8);         /* semi-transparent white */
+  backdrop-filter: blur(10px);                  /* blur background */
+  -webkit-backdrop-filter: blur(10px);          /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.3);   /* faint white border */  
+  padding: 10px;                                /* inner spacing */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);    /* soft shadow */
+}
+
 
 .reporting-container h1 {
     color: #333;

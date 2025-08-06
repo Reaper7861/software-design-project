@@ -8,6 +8,7 @@ import SendIcon from '@mui/icons-material/Send';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { messaging } from "../firebase";
 import { onMessage } from "firebase/messaging";
+import '../css/ReportingPage.css';
 
 // TO DO //
 

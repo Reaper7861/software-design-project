@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, IconButton, Dialog } from '@mui/material';
+import { Box, Button, Typography, Paper, Table, TableBody, Grid, Chip, Stack,
+  TableCell, TableContainer, TableHead, TableRow, TextField, IconButton, Dialog } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { getAuth } from "firebase/auth";
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ProfileForm from '../components/ProfileForm';
+import '../css/ReportingPage.css';
+
 
 function ProfilePage() {
   const { user, refreshProfileStatus } = useAuth();
@@ -144,57 +147,81 @@ const updatedAvailability = [...availability, newDate];
     }
   };
 
+  
+
   if (loading) {
     return <Box sx={{ p: 3 }}><Typography>Loading your data...</Typography></Box>;
   }
 
   return (
     <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>
+      <div className='any-container'>
+      <Typography variant="h1" gutterBottom>
         Welcome, {profileData?.fullName || 'User'}
       </Typography>
-      <Button variant="contained" onClick={handleOpen} sx={{ mb: 2 }}>
-        My Info
-      </Button>
       <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
         <Paper sx={{ p: 2, flex: 1 }}>
-          <Typography variant="h6" gutterBottom>
-            Your Availability
-          </Typography>
-          <Box sx={{ mb: 2 }}>
-            {availability.map((date, index) => (
-              <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Typography>{new Date(date + 'T00:00:00').toLocaleDateString()}</Typography>
-                <IconButton onClick={() => handleRemoveDate(date)} color="error">
-                  <DeleteIcon />
-                </IconButton>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="h3">Profile Information</Typography>
+                <Button variant="contained" onClick={handleOpen}>
+                  Edit
+                </Button>
               </Box>
-            ))}
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              type="date"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleAddDate}
-              startIcon={<AddIcon />}
-              disabled={!newDate}
-            >
-              Add Date
-            </Button>
-          </Box>
-          {availabilityError && (
-            <Typography color="error" sx={{ mt: 1 }}>
-              {availabilityError}
-            </Typography>
-          )}
+              
+              <Box mt={2}>
+                {[
+                  { label: "Name", value: profileData.fullName },
+                  { label: "Address", value: 
+                    <>
+                      {profileData.address1}
+                      {profileData.city && `, ${profileData.city}`}
+                      {profileData.state && `, ${profileData.state}`}
+                      {profileData.zipCode && ` ${profileData.zipCode}`}
+                    </>
+                  },
+                  { label: "Skills", value: profileData.skills, isArray: true },
+                  { label: "Preferences", value: profileData.preferences && profileData.preferences.trim() !== "" 
+                    ? profileData.preferences 
+                    : "None",  
+                    preLine: true },
+                  { label: "Availability", value: profileData.availability, preLine: true, isArray: true },
+                ].map(({ label, value, preLine, isArray  }) => (
+                  <Grid container key={label} spacing={1} alignItems="flex-start" sx={{ mb: 1 }}>
+                    <Grid item xs={4} sm={3}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {label}:
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={8} sm={9}>
+                      {isArray ? (
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          {value && value.length > 0 ? (
+                            value.map((item, index) => (
+                              <Chip key={index} label={item} size="small" />
+                            ))
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              None
+                            </Typography>
+                          )}
+                        </Stack>
+                      ) : (
+                        <Typography
+                          variant="body2"
+                          sx={preLine ? { whiteSpace: "pre-line" } : undefined}
+                        >
+                          {value}
+                        </Typography>
+                      )}
+                    </Grid>
+                  </Grid>
+                ))}
+              </Box>
         </Paper>
+
+        
         <Paper sx={{ p: 2, flex: 1 }}>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h3" gutterBottom>
             Assigned Events
           </Typography>
           <TableContainer>
@@ -220,7 +247,7 @@ const updatedAvailability = [...availability, newDate];
         </Paper>
       </Box>
       <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h3" gutterBottom>
           Your Volunteer History
         </Typography>
         <TableContainer>
@@ -244,6 +271,7 @@ const updatedAvailability = [...availability, newDate];
           </Table>
         </TableContainer>
       </Paper>
+      </div>
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <ProfileForm ref={formRef} initialData={profileData} onSubmit={handleProfileSubmit} onClose={handleClose} />
       </Dialog>

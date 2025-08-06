@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Box, Typography, Table, TableBody, TableCell,
+  Box, Typography, Table, TableBody, TableCell, Chip, Stack,
   TableContainer, TableHead, TableRow, Paper, Button, Tooltip
 } from '@mui/material';
 import axios from 'axios';
 import { getAuth, onAuthStateChanged } from "firebase/auth"; //used for authentication
+import '../css/ReportingPage.css';
+import { grey } from '@mui/material/colors';
+
 
 const MatchPage = () => {
   const [volunteers, setVolunteers] = useState([]);
@@ -326,201 +329,215 @@ const MatchPage = () => {
 
   return (
     <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
-      <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
+      <div className='any-container'>
+      <Typography variant="h1" gutterBottom textAlign={'center'}>
         Volunteer Matching
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        {/* Volunteer Table */}
-        <TableContainer component={Paper} sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
-          <Typography variant="h6" sx={{ p: 1 }}>
-            Volunteers
-          </Typography>
-          <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Address</TableCell>
-                  <TableCell>City</TableCell>
-                  <TableCell>State</TableCell>
-                  <TableCell>Zip</TableCell>
-                  <TableCell>Skills</TableCell>
-                  <TableCell>Preferences</TableCell>
-                  <TableCell>Availability</TableCell>
+  {/* VOLUNTEERS SECTION */}
+  <Box sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
+    
+
+    <TableContainer component={Paper} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Typography variant="h4" sx={{ p: 3, textAlign: 'center', borderBottom: '2px solid rgba(128, 128, 128, 0.3)'}}>
+      Volunteers
+    </Typography>
+    <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>City</TableCell>
+              <TableCell>State</TableCell>
+              <TableCell>Skills</TableCell>
+              <TableCell>Preferences</TableCell>
+              <TableCell>Availability</TableCell>
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            {paginatedVolunteers.map((v) => {
+              // normalize availability to array of strings
+              const availabilityArr = Array.isArray(v.profile?.availability)
+                ? v.profile.availability
+                : Object.entries(v.profile?.availability || {})
+                    .filter(([_, val]) => val)
+                    .map(([day]) => day);
+
+              return (
+                <TableRow
+                  key={v.uid}
+                  hover
+                  selected={selectedVolunteer?.uid === v.uid}
+                  onClick={() => {
+                    const newSelection = selectedVolunteer?.uid === v.uid ? null : v;
+                    setSelectedVolunteer(newSelection);
+                    if (newSelection !== selectedVolunteer) setCurrentEventPage(1);
+                  }}
+                  sx={{
+                    cursor: 'pointer',
+                    backgroundColor: selectedVolunteer?.uid === v.uid ? '#adadadff' : 'inherit',
+                  }}
+                >
+                  <TableCell>{v.profile?.fullName}</TableCell>
+                  <TableCell>{v.profile?.city}</TableCell>
+                  <TableCell>{v.profile?.state}</TableCell>
+
+                  {/* Skills as chips */}
+                  <TableCell>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      {Array.isArray(v.profile?.skills) && v.profile.skills.length > 0
+                        ? v.profile.skills.map((s, i) => <Chip key={i} label={s} size="small" />)
+                        : <Typography variant="body2" color="text.secondary">None</Typography>}
+                    </Stack>
+                  </TableCell>
+
+                  <TableCell sx={{ whiteSpace: 'pre-line' }}>{v.profile?.preferences}</TableCell>
+
+                  {/* Availability as chips */}
+                  <TableCell>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      {availabilityArr && availabilityArr.length > 0
+                        ? availabilityArr.map((a, i) => <Chip key={i} label={a} size="small" />)
+                        : <Typography variant="body2" color="text.secondary">None</Typography>}
+                    </Stack>
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedVolunteers.map((v) => (
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Box>
+
+      {/* Volunteers pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, p: 1 }}>
+        <Button variant="contained" disabled={currentVolunteerPage === 1} onClick={() => setCurrentVolunteerPage(p => p - 1)}>Previous</Button>
+        <Typography sx={{ alignSelf: 'center' }}>Page {currentVolunteerPage} of {totalPagesVolunteers}</Typography>
+        <Button variant="contained" disabled={currentVolunteerPage === totalPagesVolunteers} onClick={() => setCurrentVolunteerPage(p => p + 1)}>Next</Button>
+      </Box>
+    </TableContainer>
+  </Box>
+
+  {/* EVENTS SECTION */}
+  <Box sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
+    
+
+    {selectedVolunteer && (
+      <Box sx={{ p: 1, display: 'flex', gap: 2, alignItems: 'center', fontSize: '0.875rem' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: '#e8f5e8', border: '1px solid #ccc' }} />
+          <Typography variant="body2">Matchable (Location + Date ✓)</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ width: 16, height: 16, backgroundColor: '#ffeaea', border: '1px solid #ccc' }} />
+          <Typography variant="body2">Not Matchable (Location or Date ✗)</Typography>
+        </Box>
+      </Box>
+    )}
+
+    <TableContainer component={Paper} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Typography variant="h4" sx={{ p: 3, textAlign: 'center', borderBottom: '2px solid rgba(128, 128, 128, 0.3)'}}>
+      Events {selectedVolunteer && '(Sorted by Location/Date Match + Skill Count)'}
+    </Typography><Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Description</TableCell>
+              <TableCell>Location</TableCell>
+              <TableCell>Required Skills</TableCell>
+              <TableCell>Urgency</TableCell>
+              <TableCell>Date</TableCell>
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            {paginatedEvents.map((e) => {
+              const compatibilityStatus = getEventCompatibilityStatus(e);
+              const isCompatible = compatibilityStatus === 'compatible';
+              const isIncompatible = compatibilityStatus === 'incompatible';
+              const compatibilityDetails = selectedVolunteer ? getCompatibilityDetails(selectedVolunteer, e) : '';
+              const skillMatchCount = selectedVolunteer ? countMatchingSkills(selectedVolunteer, e) : 0;
+
+              // normalize required skills
+              const reqSkills = Array.isArray(e.requiredskills) ? e.requiredskills : (e.requiredskills ? [e.requiredskills] : []);
+
+              // format date label for chip
+              let dateLabel = e.eventdate;
+              try {
+                const d = new Date(e.eventdate);
+                if (!Number.isNaN(d.getTime())) dateLabel = d.toLocaleDateString();
+              } catch (err) { /* keep original string */ }
+
+              return (
+                <Tooltip key={e.eventid} title={selectedVolunteer ? compatibilityDetails : ''} placement="left" arrow>
                   <TableRow
-                    key={v.uid}
                     hover
-                    selected={selectedVolunteer?.uid === v.uid}
-                    onClick={() => {
-                      const newSelection = selectedVolunteer?.uid === v.uid ? null : v;
-                      setSelectedVolunteer(newSelection);
-                      // Reset to first page when changing volunteer selection
-                      if (newSelection !== selectedVolunteer) {
-                        setCurrentEventPage(1);
-                      }
-                    }}
+                    selected={selectedEvent?.eventid === e.eventid}
+                    onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
                     sx={{
                       cursor: 'pointer',
-                      backgroundColor: selectedVolunteer?.uid === v.uid ? '#adadadff' : 'inherit',
+                      backgroundColor: selectedEvent?.eventid === e.eventid
+                        ? '#e0f7fa'
+                        : isCompatible ? '#e8f5e8' : isIncompatible ? '#ffeaea' : 'inherit',
+                      '&:hover': {
+                        backgroundColor: selectedEvent?.eventid === e.eventid
+                          ? '#e0f7fa'
+                          : isCompatible ? '#d4edda' : isIncompatible ? '#f8d7da' : '#f5f5f5',
+                      },
                     }}
                   >
-                    <TableCell>{v.profile?.fullName}</TableCell>
-                    <TableCell>{v.profile?.address1}</TableCell>
-                    <TableCell>{v.profile?.city}</TableCell>
-                    <TableCell>{v.profile?.state}</TableCell>
-                    <TableCell>{v.profile?.zipCode}</TableCell>
-                    <TableCell>{v.profile?.skills?.join(', ')}</TableCell>
-                    <TableCell>{v.profile?.preferences}</TableCell>
-                    <TableCell>{Array.isArray(v.profile?.availability)
-                      ? v.profile.availability.join(', ')
-                      : Object.entries(v.profile?.availability || {})
-                          .filter(([_, available]) => available)
-                          .map(([day]) => day)
-                          .join(', ')
-                    }</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, p: 1 }}>
-            <Button
-              variant='contained'
-              disabled={currentVolunteerPage === 1}
-              onClick={() => setCurrentVolunteerPage(prev => prev - 1)}
-            >
-              Previous
-            </Button>
-            <Typography sx={{ alignSelf: 'center' }}>
-              Page {currentVolunteerPage} of {totalPagesVolunteers}
-            </Typography>
-            <Button
-              variant='contained'
-              disabled={currentVolunteerPage === totalPagesVolunteers}
-              onClick={() => setCurrentVolunteerPage(prev => prev + 1)}
-            >
-              Next
-            </Button>
-          </Box>
-        </TableContainer>
-
-        {/* Events Table */}
-        <TableContainer component={Paper} sx={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', height: 600 }}>
-          <Typography variant="h6" sx={{ p: 1 }}>
-            Events {selectedVolunteer && '(Sorted by Location/Date Match + Skill Count)'}
-          </Typography>
-          {selectedVolunteer && (
-            <Box sx={{ p: 1, display: 'flex', gap: 2, alignItems: 'center', fontSize: '0.875rem' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 16, height: 16, backgroundColor: '#e8f5e8', border: '1px solid #ccc' }}></Box>
-                <Typography variant="body2">Matchable (Location + Date ✓)</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 16, height: 16, backgroundColor: '#ffeaea', border: '1px solid #ccc' }}></Box>
-                <Typography variant="body2">Not Matchable (Location or Date ✗)</Typography>
-              </Box>
-            </Box>
-          )}
-          <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Event ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Required Skills</TableCell>
-                  <TableCell>Urgency</TableCell>
-                  <TableCell>Date</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedEvents.map((e) => {
-                  const compatibilityStatus = getEventCompatibilityStatus(e);
-                  const isCompatible = compatibilityStatus === 'compatible';
-                  const isIncompatible = compatibilityStatus === 'incompatible';
-                  const compatibilityDetails = selectedVolunteer ? getCompatibilityDetails(selectedVolunteer, e) : '';
-                  const skillMatchCount = selectedVolunteer ? countMatchingSkills(selectedVolunteer, e) : 0;
-                  
-                  return (
-                    <TableRow
-                      key={e.eventid}
-                      hover
-                      selected={selectedEvent?.eventid === e.eventid}
-                      onClick={() => setSelectedEvent(selectedEvent?.eventid === e.eventid ? null : e)}
-                      sx={{
-                        cursor: 'pointer',
-                        backgroundColor: selectedEvent?.eventid === e.eventid 
-                          ? '#e0f7fa' 
-                          : isCompatible 
-                            ? '#e8f5e8' // Light green for compatible
-                            : isIncompatible 
-                              ? '#ffeaea' // Light red for incompatible
-                              : 'inherit',
-                        '&:hover': {
-                          backgroundColor: selectedEvent?.eventid === e.eventid 
-                            ? '#e0f7fa' 
-                            : isCompatible 
-                              ? '#d4edda' // Darker green on hover
-                              : isIncompatible 
-                                ? '#f8d7da' // Darker red on hover
-                                : '#f5f5f5',
-                        }
-                      }}
-                    >
-                    <TableCell>{e.eventid}</TableCell>
                     <TableCell>{e.eventname}</TableCell>
                     <TableCell>{e.eventdescription}</TableCell>
                     <TableCell>{e.location}</TableCell>
+
+                    {/* Required skills as chips */}
                     <TableCell>
-                      {Array.isArray(e.requiredskills) ? e.requiredskills.join(', ') : e.requiredskills}
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                        {reqSkills.length > 0
+                          ? reqSkills.map((s, i) => <Chip key={i} label={s} size="small" />)
+                          : <Typography variant="body2" color="text.secondary">None</Typography>}
+                      </Stack>
+
                       {selectedVolunteer && isCompatible && (
                         <Typography variant="caption" display="block" sx={{ color: 'green', fontWeight: 'bold' }}>
                           {skillMatchCount} skill(s) match
                         </Typography>
                       )}
                     </TableCell>
+
                     <TableCell>{e.urgency}</TableCell>
-                    <TableCell>{e.eventdate}</TableCell>
+
+                    {/* Date as chip */}
+                    <TableCell>
+                      <Chip label={dateLabel} size="small" />
+                    </TableCell>
                   </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, p: 1 }}>
-            <Button
-              variant='contained'
-              disabled={currentEventPage === 1}
-              onClick={() => setCurrentEventPage(prev => prev - 1)}
-            >
-              Previous
-            </Button>
-            <Typography sx={{ alignSelf: 'center' }}>
-              Page {currentEventPage} of {totalPagesEvents}
-            </Typography>
-            <Button
-              variant='contained'
-              disabled={currentEventPage === totalPagesEvents}
-              onClick={() => setCurrentEventPage(prev => prev + 1)}
-            >
-              Next
-            </Button>
-          </Box>
-        </TableContainer>
+                </Tooltip>
+              );
+            })}
+          </TableBody>
+        </Table>
       </Box>
 
+      {/* Events pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, p: 1 }}>
+        <Button variant="contained" disabled={currentEventPage === 1} onClick={() => setCurrentEventPage(p => p - 1)}>Previous</Button>
+        <Typography sx={{ alignSelf: 'center' }}>Page {currentEventPage} of {totalPagesEvents}</Typography>
+        <Button variant="contained" disabled={currentEventPage === totalPagesEvents} onClick={() => setCurrentEventPage(p => p + 1)}>Next</Button>
+      </Box>
+    </TableContainer>
+  </Box>
+</Box>
+
       {/* Match Button */}
-      <Box sx={{ mt: 2 }}>
+      <Box  sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
         <Button
           variant="contained"
           onClick={handleCreateMatch}
           disabled={!selectedVolunteer || !selectedEvent}
+          sx={{ fontSize: '1.25rem', padding: '12px 36px' }}
         >
           Create Match
         </Button>
@@ -528,8 +545,8 @@ const MatchPage = () => {
 
       {/* Existing Matches */}
 
-      <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" sx={{ color: 'white' }}>Existing Matches</Typography>
+      <Box sx={{ mt: 10 }}>
+          <Typography variant="h1" textAlign={'center'}>Existing Matches</Typography>
           {matches.length === 0 ? (
               <Typography>No matches made yet.</Typography>
           ) : (
@@ -642,6 +659,7 @@ const MatchPage = () => {
               </div>
           )}
       </Box>
+      </div>
     </Box>
   );
 };

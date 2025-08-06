@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Button, Typography, TextField, Paper, List, ListItem, ListItemButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+  Box, Button, Typography, TextField, Paper, List, ListItem, 
+  ListItemButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
+import '../css/ReportingPage.css';
+
 
 
 
@@ -75,13 +78,13 @@ const volunteerList = React.useMemo(() => {
   return (
   <Box sx={{ p: 3,  minHeight: '100vh',  backgroundColor: 'rgba(138, 154, 91, 0.3)'}}>
 
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Typography variant="h5" gutterBottom>
+    <div className='any-container'>
+      <Typography variant="h1" gutterBottom>
         Volunteer Participation History
       </Typography>
 
-      <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'start' }}>
-        <Box sx={{ width: 300 }}>
+      <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'start'}}>
+        <Box sx={{ width: 500 }}>
           <TextField
             label="Search Volunteer"
             fullWidth
@@ -136,14 +139,14 @@ const volunteerList = React.useMemo(() => {
         <Table>
           <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
             <TableRow>
-              <TableCell>Volunteer</TableCell>
-              <TableCell>Event Name</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Required Skills</TableCell>
-              <TableCell>Urgency</TableCell>
-              <TableCell>Event Date</TableCell>
-              <TableCell>Participation Status</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Volunteer</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Event Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Location</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Skills</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Urgency</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Event Date</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -187,7 +190,7 @@ const volunteerList = React.useMemo(() => {
           Next
         </Button>
       </Box>
-</Paper>
+</div>
     </Box>
   );
 };
