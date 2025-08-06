@@ -281,21 +281,10 @@ useEffect(() => {
 
 return (
 <Box sx={{ display: 'flex', height: '100vh', backgroundColor: 'rgba(138, 154, 91, 0.3)' }}>
+  <div className='any-notif-container'>
       {/* Left Sidebar */}
       
-       <Box
-        sx={{
-          width: 250,
-          height: '100vh',
-          borderRight: '1px solid #ddd',
-          bgcolor: '#f7f7f7',
-          position: 'sticky',
-          top: 0,
-          p: 2,
-          boxSizing: 'border-box',
-          overflowY: 'auto',
-        }}
-      >
+       <div className='any-notif-sidebar'>
         <Paper
           elevation={0}
           sx={{
@@ -347,15 +336,14 @@ return (
             ))}
           </Box>      
         </Paper>
-      </Box>
-
+      </div>
 
       {/* Right: Notification Feed */}
       
-      <Box sx={{ flexGrow: 1, p: 3, overflowY: 'auto' }}>
-        <Paper sx={{ p: 3 }}>
+      <Box sx={{ width: 1200, flexGrow: 1, p: 3, overflowY: 'auto' }}>
+        <Paper sx={{ borderRadius: '12px', p: 3 }}>
           
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h2" gutterBottom>
             Notification Feed
           </Typography>
 
@@ -400,10 +388,15 @@ return (
     })()}
         </Paper>
       </Box>
+      </div>
 
       {/* Send Notification Dialog */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Send Notification</DialogTitle>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{
+          sx: {
+            borderRadius: '12px'
+          }
+        }}>
+        <DialogTitle variant="h5"><strong>Send Notification</strong></DialogTitle>
         <DialogContent>
           <TextField
             label="Search Volunteer"
@@ -420,7 +413,7 @@ return (
             sx={{ my: 2 }}
           />
           {focused && (
-            <Paper sx={{ maxHeight: 150, overflowY: 'auto', mb: 2 }}>
+            <Paper sx={{ borderRadius: '12px', maxHeight: 150, overflowY: 'auto', mb: 2 }}>
               <List dense>
                 {filteredVolunteers.length > 0 ? (
                   filteredVolunteers.map((vol, index) => (

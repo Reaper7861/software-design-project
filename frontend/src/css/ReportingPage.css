@@ -39,6 +39,28 @@
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);    /* soft shadow */
 }
 
+.any-notif-container {
+    display: flex;
+    max-width: 99%;
+    margin: 20px auto;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.8);         
+  backdrop-filter: blur(10px);                 
+  -webkit-backdrop-filter: blur(10px);         
+  border: 1px solid rgba(255, 255, 255, 0.3);  
+                               
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);   
+}
+
+.any-notif-container h2 {
+    color: #333333; /*#333;*/
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+
 .any-container h1 {
     color: #333333; /*#333;*/
     margin-bottom: 15px;
@@ -67,7 +89,6 @@
 
 .any-notif-sidebar {
     width: 250px;
-    margin: 25px;
     /*background: white;*/
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
