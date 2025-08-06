@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
@@ -22,9 +22,14 @@ import PhantomPage from './pages/PhantomPage'
 import Homepage from './pages/Homepage'
 import Dashboard from './pages/AdminDashboard'
 
+//import messaging stuff for the firebase service worker 
+import { onMessage } from "firebase/messaging";
+import { messaging } from "./firebase";
+import { Snackbar, Alert } from "@mui/material";
+
 //theme for color across mui components
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline'; // optional for consistent styling
+import CssBaseline from '@mui/material/CssBaseline';
 
 const theme = createTheme({
   palette: {
@@ -47,8 +52,11 @@ const theme = createTheme({
     },
     text: {
       primary: '#000000',         // default text
-      secondary: '#483C32',       // your custom secondary text color #5c5c5c
+      secondary: '#483C32',       //  #5c5c5c
     },
+    typography: {
+    fontFamily: '"Roboto Slab", serif', // Your custom font
+  },
   },
   //this is to override all the button colors
  components: {
@@ -72,6 +80,10 @@ const theme = createTheme({
 
 // Main app component
 function App() {
+  const [toast, setToast] = useState({ open: false, title: "", body: "" });
+
+   const seenIdsRef = useRef(new Set()); //to dedupe message ids in-mem
+
   // Register FCM token when user is authenticated
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -97,6 +109,62 @@ function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+
+  //for push notifications//////////////////////
+   const handleIncomingPayload = (payload) => {
+    // try a few places for stable id
+    const id =
+      (payload?.data && (payload.data.messageId || payload.data.message_id)) ||
+      payload?.messageId ||
+      payload?.notification?.tag ||
+      // fallback: small hash from title+body+time
+      `${payload?.notification?.title || ""}::${payload?.notification?.body || ""}`;
+
+    if (id && seenIdsRef.current.has(id)) return; // already shown
+    if (id) seenIdsRef.current.add(id);
+
+    const title = payload?.notification?.title || payload?.data?.title || "Notification";
+    const body = payload?.notification?.body || payload?.data?.body || "";
+
+    setToast({ open: true, title, body });
+  };
+
+  useEffect(() => {
+    // 1) foreground FCM messages (when tab has focus)
+    let unsubscribeOnMessage;
+    try {
+      unsubscribeOnMessage = onMessage(messaging, (payload) => {
+        console.log("FCM foreground message:", payload);
+        handleIncomingPayload(payload);
+      });
+    } catch (err) {
+      console.warn("onMessage setup failed:", err);
+    }
+
+    // 2) messages posted from the service worker (background -> client)
+    const swHandler = (event) => {
+      const data = event?.data;
+      if (!data) return;
+      // our SW posts { type: 'FCM_MESSAGE', payload }
+      if (data.type === "FCM_MESSAGE" && data.payload) {
+        console.log("Received SW message in page:", data.payload);
+        handleIncomingPayload(data.payload);
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", swHandler);
+    }
+
+    // cleanup
+    return () => {
+      if (typeof unsubscribeOnMessage === "function") unsubscribeOnMessage();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", swHandler);
+      }
+    };
   }, []);
 
   return (
@@ -148,6 +216,22 @@ function App() {
             </AdminRoute>
             } />
         </Routes>
+
+        <Snackbar
+          open={toast.open}
+          autoHideDuration={8000}
+          onClose={() => setToast((t) => ({ ...t, open: false }))}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setToast((t) => ({ ...t, open: false }))}
+            severity="info"
+            sx={{ width: "100%" }}
+          >
+            <strong>{toast.title}</strong>
+            <div>{toast.body}</div>
+          </Alert>
+        </Snackbar>
       </div>
       </ThemeProvider>
     </AuthProvider>

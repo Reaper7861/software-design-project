@@ -16,5 +16,21 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// firebase-messaging-sw.js
+self.addEventListener("push", (event) => {
+  if (event.data) {
+    const data = event.data.json();
+    console.log("Push received:", data);
 
-//test
+    // Post message to open client pages
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: "FCM_MESSAGE",
+            payload: data,
+          });
+        });
+      });
+  }
+});
